@@ -3,7 +3,7 @@
 #water level units are in ft above MSL to be consistent with NOAA tidal constituents
 #all years are nonleap years, but this does not matter for population simulations because the season always starts on May 1 (it does matter for projecting tides heights using tidal constituents)
 
-setwd("/Users/christopher/Dropbox/PVA/MCMC/GCB")
+setwd("/Users/chrisfield/Dropbox/PVA/MCMC/GCB")
 
 start_time <- proc.time()
 
