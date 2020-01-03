@@ -17,7 +17,7 @@ E <- 2
 #Y <-  80
 Y <-  50
 #Q <-1000
-Q <- 3
+Q <- 10
 W <- 20
 # make sure the correct working directories are selected
 ### END CHECK THE FOLLOWING CONDITIONS BEFORE RUNNNG ###
@@ -30,6 +30,12 @@ surge_posteriors <- read.csv(file = "storm_surge_posteriors.csv", header=TRUE, s
 # load data files for vital rates and SLR
 VitalRates <- read.csv(file = "IBM_parameters.csv", header=TRUE, sep=",", stringsAsFactors=FALSE, quote="")
 SLR_Rahm_all <- read.csv(file = "SLR_Rahmstorf.csv", header=TRUE, sep=",", stringsAsFactors=FALSE, quote="")
+# load nest success probabilities
+nest_succ <- read.csv(file = "nest_failure_MCMC.csv", header=TRUE, sep=",", stringsAsFactors=FALSE, quote="")
+# load values for adult survival
+surv_CT <- read.csv(file = "surv_avgsite_MCMC.csv", header=TRUE, sep=",", stringsAsFactors=FALSE, quote="")
+# load renesting probability: varies by date and latitude, but no individual variation beyond binomial sampling variance
+renest_prob_MCMC <- read.csv(file = "renest_prob_MCMC.csv", header=TRUE, sep=",", stringsAsFactors=FALSE, quote="")
 
 # load libraries, detect and register cores, and use the foreach command to do parallel computing for each iteration of the parameter uncertainty loop
 library('parallel')
@@ -48,8 +54,7 @@ PVA <- foreach(q = 1:Q) %dopar% {
   #num_windows <- mat.or.vec(Y, 1)
   
   # pull parameter values from posterior predictions
-  # load renesting probability: varies by date and latitude, but no individual variation beyond binomial sampling variance
-  renest_prob_MCMC <- read.csv(file = "renest_prob_MCMC.csv", header=TRUE, sep=",", stringsAsFactors=FALSE, quote="")
+  # draw renesting probability: varies by date and latitude, but no individual variation beyond binomial sampling variance
   # randomly select a row number, which will be used to draw a vector of parameter values from the same step of the MCMC chain
   renest_prob_row <- sample(1000, 1)
   renest_prob_int <- renest_prob_MCMC[renest_prob_row, 1]
@@ -57,8 +62,7 @@ PVA <- foreach(q = 1:Q) %dopar% {
   renest_prob_lat <- renest_prob_MCMC[renest_prob_row, 2]
   renest_prob_sd <- 0
   
-  # load nest success probabilities
-  nest_succ <- read.csv(file = "nest_failure_MCMC.csv", header=TRUE, sep=",", stringsAsFactors=FALSE, quote="")
+  # draw nest success probabilities
   # randomly select a row number, which will be used to draw a vector of parameter values from the same step of the MCMC chain
   nest_succ_row <- sample(1000, 1)
   #intercept
@@ -84,8 +88,7 @@ PVA <- foreach(q = 1:Q) %dopar% {
   clutch_size_4 <- exp(rnorm(1, 2.1171442, 0.1467794))
   clutch_size_5 <- exp(rnorm(1, 0.4307773, 0.1781254))
   
-  # load values for adult survival
-  surv_CT <- read.csv(file = "surv_avgsite_MCMC.csv", header=TRUE, sep=",", stringsAsFactors=FALSE, quote="")
+  # draw values for adult survival
   # randomly select a row number, which will be used to pull parameter values from the same iteration of the MCMC chain
   surv_bysite_row <- sample(1000, 1)
   survival_sitevector <- surv_CT[surv_bysite_row, 1]
@@ -123,7 +126,7 @@ PVA <- foreach(q = 1:Q) %dopar% {
     sites <- 8:8
     # starting population size
     #popsize_bysite <- 1500
-    popsize_bysite <- 150
+    popsize_bysite <- 1500
     # vector of starting population sizes by site for exporting; this vector will update annually, while "popsize_bysite" will remain as the starting population sizes; there is only one site for a single-population model
     popsize_bysite_export <- mat.or.vec(1, 1)
     # combine site indices and starting population sizes to get a vector of individuals indexed by site
