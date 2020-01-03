@@ -13,7 +13,7 @@ start_time <- proc.time()
 # number of iterations for each loop: E is demographic-environmental uncertainty (not necessary unless specifically partitioning the uncertainty); Y is the number of years; 
 # Q is the number of iterations for estimating uncertainty from parameter estimation
 # W is the number of high tides during which nests are saved
-E <- 1
+E <- 4
 #Y <-  80
 Y <-  60
 #Q <-1000
@@ -39,13 +39,13 @@ cl <- makeCluster(detectCores() - 2)
 registerDoParallel(cl, cores=detectCores() - 2)
 
 PVA <- foreach(q = 1:Q) %dopar% {
-# this for loop is for testing without using foreach
-#start_time <- proc.time()
-#for(q in 1:1){
+  # this for loop is for testing without using foreach
+  #start_time <- proc.time()
+  #for(q in 1:1){
   # create an empty length(site)-by-Y-by-E array to store results; length(site) is one for single-population model
   popsize_matrix <- array(0, dim=c(1, Y + 1, E))
   # create an array for tracking the number of suitable breeding windows in each year
-  num_windows <- mat.or.vec(Y, 1)
+  #num_windows <- mat.or.vec(Y, 1)
   
   # pull parameter values from posterior predictions
   # load renesting probability: varies by date and latitude, but no individual variation beyond binomial sampling variance
@@ -61,7 +61,7 @@ PVA <- foreach(q = 1:Q) %dopar% {
   nest_succ <- read.csv(file = "nest_failure_MCMC.csv", header=TRUE, sep=",", stringsAsFactors=FALSE, quote="")
   # randomly select a row number, which will be used to draw a vector of parameter values from the same step of the MCMC chain
   nest_succ_row <- sample(1000, 1)
-   #intercept
+  #intercept
   nest_succ_int <- nest_succ[nest_succ_row,1]
   # tide effect
   nest_succ_tide <- nest_succ[nest_succ_row,2]
@@ -112,6 +112,12 @@ PVA <- foreach(q = 1:Q) %dopar% {
   
   # environmental and demographic stochasticity
   for(e in 1:E){
+    num_windows <- mat.or.vec(Y, 1)
+    if(e %% 2 == 0){
+      prop_behind_gate <- 0.3
+    } else{
+      prop_behind_gate <- 0
+    }
     # create a vector of site indices
     # use just one site when simulating a single-population model (use 8 for LIS, since that sets it in the middle of the CT coastline)
     sites <- 8:8
@@ -202,7 +208,7 @@ PVA <- foreach(q = 1:Q) %dopar% {
       # create an empty array so that every individual can have an independent matrix for save or not (save_mat)
       save_index_byind <- array(0, c(2, length(tides_byday[1,]), length(new_lat)))
       # randomly determine which individuals will be subject to saves according to a specified probability
-      behind_gate <- rbinom(length(new_lat), 1, 0.3)
+      behind_gate <- rbinom(length(new_lat), 1, prop_behind_gate)
       # if indiviuals are determined to be behind a gate and subject to saves, according to behind_gate, assign save_mat to their position in the array
       # otherwise their matrix stays all zeros (no saves)
       save_index_byind[, , behind_gate==1] <- save_mat
@@ -465,7 +471,7 @@ PVA <- foreach(q = 1:Q) %dopar% {
         break
       }
     }
-    popsize_matrix[,Y+1, 1] <- min(which(num_windows==0))
+    popsize_matrix[,Y+1, e] <- min(which(num_windows==0))
   }
   popsize_matrix[ , , ]
 }
