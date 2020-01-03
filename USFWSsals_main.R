@@ -57,16 +57,16 @@ PVA <- foreach(q = 1:Q) %dopar% {
   renest_prob_lat <- renest_prob_MCMC[renest_prob_row, 2]
   renest_prob_sd <- 0
   
-  # load nest failure probabilities
-  nest_fail <- read.csv(file = "nest_failure_MCMC.csv", header=TRUE, sep=",", stringsAsFactors=FALSE, quote="")
+  # load nest success probabilities
+  nest_succ <- read.csv(file = "nest_failure_MCMC.csv", header=TRUE, sep=",", stringsAsFactors=FALSE, quote="")
   # randomly select a row number, which will be used to draw a vector of parameter values from the same step of the MCMC chain
-  nest_fail_row <- sample(1000, 1)
+  nest_succ_row <- sample(1000, 1)
    #intercept
-  nest_fail_int <- nest_fail[nest_fail_row,1]
+  nest_succ_int <- nest_succ[nest_succ_row,1]
   # tide effect
-  nest_fail_tide <- nest_fail[nest_fail_row,2]
+  nest_succ_tide <- nest_succ[nest_succ_row,2]
   # variance term for nest-level random effect
-  nest_fail_var <- nest_fail[nest_fail_row,3]
+  nest_succ_var <- nest_succ[nest_succ_row,3]
   
   # choose values from posteriors of biotic parameters from table (# days after success, # days after failure, reduction in survival for first year, sex ratio, nest building, # incubation days, # chick days, nest initiation date)
   # first column is the intercept, second is the latitudinal trend, third is within-season date trend, fourth is individual variation, fifth is seasonal variation
@@ -190,16 +190,21 @@ PVA <- foreach(q = 1:Q) %dopar% {
         threshold_index[i-120] <- length(which(tides_byday[ , i-120] > 3.45))
       }
       
-      # use these two commands to order tides from highest to lowest
-      tides_temp <- tides[order(tides, decreasing = TRUE)]
-      #tides_byday_ordered <- matrix(tides_byday, ncol=123)
+      # order tides from highest to lowest
+      tides_ordered <- tides[order(tides, decreasing = TRUE)]
       # create an index for whether that tide is a "save", determined by whether it is higher or equal to the W highest tide
-      save_index <- tides_byday > tides_temp[W]
-      #lapply(save_index, as.numeric)
+      save_index <- tides_byday > tides_ordered[W]
+      # create an empty matrix that will index whether each tide in the season is a save (1) or not (0)
+      # with rows for the tides in each day and columns equal to the number of days in the season
       save_mat <- mat.or.vec(2, length(tides_byday[1,]))
+      # if a tide should be a "save", according to save_index, save_mat is equal to 1
       save_mat[save_index] <- 1
+      # create an empty array so that every individual can have an independent matrix for save or not (save_mat)
       save_index_byind <- array(0, c(2, length(tides_byday[1,]), length(new_lat)))
+      # randomly determine which individuals will be subject to saves according to a specified probability
       behind_gate <- rbinom(length(new_lat), 1, 0.3)
+      # if indiviuals are determined to be behind a gate and subject to saves, according to behind_gate, assign save_mat to their position in the array
+      # otherwise their matrix stays all zeros (no saves)
       save_index_byind[, , behind_gate==1] <- save_mat
       
       # calculate the number of windows without a reproduction-stopping tide (one that would cause greater than 95% failure) 
@@ -268,15 +273,15 @@ PVA <- foreach(q = 1:Q) %dopar% {
       # get an object for the how close the current population size is to 9 times the starting population size (as a proportion)
       allee_prop <- (popsize_bysite_export/(9*popsize_bysite[1]))
       
-      # nest failure probabilities, which were previously drawn from MCMC
-      nest_fail_logit <- nest_fail_int + nest_fail_tide*tides_byday 
-      nest_fail_logit <- replicate(length(individs_bysite), nest_fail_logit + rnorm(1, 0, nest_fail_var), simplify="array")
-      fail_prob <- exp(nest_fail_logit)/(1+exp(nest_fail_logit))
-      # adjust nest failure probabilities so that all nests survive on days with saves
-      fail_prob[save_index_byind==1] <- 1
-      fail_prob_day <- apply(fail_prob, MARGIN = c(2,3), FUN = prod)
+      # nest success probabilities, which were previously drawn from MCMC
+      nest_succ_logit <- nest_succ_int + nest_succ_tide*tides_byday 
+      nest_succ_logit <- replicate(length(individs_bysite), nest_succ_logit + rnorm(1, 0, nest_succ_var), simplify="array")
+      succ_prob <- exp(nest_succ_logit)/(1+exp(nest_succ_logit))
+      # adjust nest success probabilities so that survival probability = 1 on for tides with saves
+      succ_prob[save_index_byind==1] <- 1
+      succ_prob_day <- apply(succ_prob, MARGIN = c(2,3), FUN = prod)
       # density dependence kicks in at 3 times the starting populations size and increases gradually until its maximum at 9 times the population size
-      daily_surv <- fail_prob_day - fail_prob_day*allee_index_individs[1]*(.5/(1+exp(-(-8 + 25*(allee_prop-(1/3))))))
+      daily_surv <- succ_prob_day - succ_prob_day*allee_index_individs[1]*(.5/(1+exp(-(-8 + 25*(allee_prop-(1/3))))))
       
       # create a window for the "vulnerable period"; each individual has a unique value, which does not vary over the breeding season
       window <- laying + incubation + chicks
@@ -327,7 +332,6 @@ PVA <- foreach(q = 1:Q) %dopar% {
               if(t >= (nest_building[z] + renest_days_success[z])){
                 # did the nest survive day i?
                 alive <- rbinom(1, clutch, daily_surv[i, z])
-                #alive <- rbinom(1, clutch, max(daily_surv[i, z], save_index_byind[i, z]))
                 clutch <- alive
                 # if the nest survived day i, add 1 to f
                 if(clutch > 0){
@@ -364,7 +368,6 @@ PVA <- foreach(q = 1:Q) %dopar% {
               if(t >= (nest_building[z] + renest_days_fail[z])){
                 # did the nest survive day i?
                 alive <- rbinom(1, clutch, daily_surv[i, z])
-                #alive <- rbinom(1, clutch, max(daily_surv[i, z], save_index_byind[i, z]))
                 clutch <- alive
                 # if the nest survived day i, add 1 to f
                 if(clutch > 0){
