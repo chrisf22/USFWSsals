@@ -13,11 +13,11 @@ start_time <- proc.time()
 # number of iterations for each loop: E is demographic-environmental uncertainty (not necessary unless specifically partitioning the uncertainty); Y is the number of years; 
 # Q is the number of iterations for estimating uncertainty from parameter estimation
 # W is the number of high tides during which nests are saved
-E <- 4
+E <- 2
 #Y <-  80
-Y <-  60
+Y <-  50
 #Q <-1000
-Q <- 2
+Q <- 3
 W <- 20
 # make sure the correct working directories are selected
 ### END CHECK THE FOLLOWING CONDITIONS BEFORE RUNNNG ###
@@ -123,7 +123,7 @@ PVA <- foreach(q = 1:Q) %dopar% {
     sites <- 8:8
     # starting population size
     #popsize_bysite <- 1500
-    popsize_bysite <- 250
+    popsize_bysite <- 150
     # vector of starting population sizes by site for exporting; this vector will update annually, while "popsize_bysite" will remain as the starting population sizes; there is only one site for a single-population model
     popsize_bysite_export <- mat.or.vec(1, 1)
     # combine site indices and starting population sizes to get a vector of individuals indexed by site
@@ -146,7 +146,7 @@ PVA <- foreach(q = 1:Q) %dopar% {
     # get log(accretion) mean and standard devation from LIS studies; backtransform and convert from m to ft to be consistent with NOAA tidal constintuent data
     accretion <- exp(rnorm(1, -5.7208, 0.1923))*3.28084
     
-    # year y=1 is 2014; parameters are using a baseline of 2013
+    # parameters and tide data are using a baseline of 2013, so they are indexed as (y+7) so that y = 1 is 2021; starting population size is for 2020 
     # year loop
     for(y in 1:Y){
       # max breeding season: May 1 through August 31, in days since Jan 1 (day 1) in a non-leap year
@@ -158,12 +158,12 @@ PVA <- foreach(q = 1:Q) %dopar% {
       # draw year-specific parameters from the parent distribution from loop for parameter uncertainty
       surgeslope <- rnorm(1, beta_mu, sd2)
       # it's 35+y because slope = 0 is in 1979 and this y loop starts in 2014
-      surgeint <- rnorm(1, S + beta_year*(35+y), sd3)
+      surgeint <- rnorm(1, S + beta_year*(35+(y+7)), sd3)
       
       # remove extra zeros at the end of tide and date csv table
-      # we add 2 to y because the first column of the tide file is 2012 but 1 = 2014 for the y loop 
-      tidessanszero <- tides12to90[tides12to90[,y+2]>0, y+2]
-      datessanszero <- tidedates12to90[tidedates12to90[,y+2]>0, y+2]
+      # we add 2 to (y+7) because the first column of the tide file is 2012 but script was originally written so that y = 1 is 2014 for the loop 
+      tidessanszero <- tides12to90[tides12to90[,(y+7)+2]>0, (y+7)+2]
+      datessanszero <- tidedates12to90[tidedates12to90[,(y+7)+2]>0, (y+7)+2]
       
       # get dates in units of days since Jan 1st (instead of May 1st)
       datessanszero  <- datessanszero + 121
@@ -187,7 +187,7 @@ PVA <- foreach(q = 1:Q) %dopar% {
       tides <- tidessanszero + surgepredic
       
       # add rise scenario; 0.0017666 ft is the global rate of SLR between 1979 and 2014 (which was removed before non-tidal fluctuation modeling); 35 is the number of years of this time period
-      tides <- tides + SLR_Rahm[y] - accretion*y + 35*0.0017666
+      tides <- tides + SLR_Rahm[(y+7)] - accretion*(y+7) + 35*0.0017666
       threshold_index <- mat.or.vec(123, 1)
       tides_byday <- mat.or.vec(2, 123)
       for(i in min(julian):max(julian)){
