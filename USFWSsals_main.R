@@ -18,7 +18,11 @@ E <- 2
 Y <-  50
 #Q <-1000
 Q <- 10
-W <- 100
+num_saves <- 100
+behind_gate_bystate <- c(0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3)
+prop_dep_bystate <- c(0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3)
+thin_layer_bystate <- c(0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01)
+state_lats <- c(39.53554518, 40.59975147, 41.26211791, 41.48726854, 42.77556486, 43.07542386, 43.56329844)
 # make sure the correct working directories are selected
 ### END CHECK THE FOLLOWING CONDITIONS BEFORE RUNNNG ###
 
@@ -44,12 +48,12 @@ library('doParallel')
 cl <- makeCluster(detectCores() - 2)
 registerDoParallel(cl, cores=detectCores() - 2)
 
-#PVA <- foreach(q = 1:Q) %dopar% {
+PVA <- foreach(q = 1:Q) %dopar% {
   # this for loop is for testing without using foreach
   #start_time <- proc.time()
-  for(q in 1:1){
+  #for(q in 1:1){
   # create an empty length(site)-by-Y-by-E array to store results; length(site) is one for single-population model
-  popsize_matrix <- array(0, dim=c(8, Y + 1, E))
+  popsize_matrix <- array(0, dim=c(7, Y + 1, E))
   # create an array for tracking the number of suitable breeding windows in each year
   #num_windows <- mat.or.vec(Y, 1)
   
@@ -117,25 +121,26 @@ registerDoParallel(cl, cores=detectCores() - 2)
   for(e in 1:E){
     num_windows <- mat.or.vec(Y, 1)
     if(e %% 2 == 0){
-      prop_behind_gate <- c(0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3)
-      thin_layer <- c(0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01)
+      prop_behind_gate <- behind_gate_bystate
+      prop_dep <- prop_dep_bystate
     } else{
-      prop_behind_gate <- c(0, 0, 0, 0, 0, 0, 0, 0)
-      thin_layer <- c(0, 0, 0, 0, 0, 0, 0, 0)
+      prop_behind_gate <- c(0, 0, 0, 0, 0, 0, 0)
+      prop_dep <- c(0, 0, 0, 0, 0, 0, 0)
     }
     # create a vector of site indices
     # use just one site when simulating a single-population model (use 8 for LIS, since that sets it in the middle of the CT coastline)
     #sites <- 8:8
-    sites <- 1:8
+    sites <- 1:7
     # starting population size
     #popsize_bysite <- 1500
-    popsize_bysite <- c(10, 10, 10, 10, 10, 10, 10, 10)
+    popsize_bysite <- c(10, 10, 10, 10, 10, 10, 10)
     # vector of starting population sizes by site for exporting; this vector will update annually, while "popsize_bysite" will remain as the starting population sizes; there is only one site for a single-population model
-    popsize_bysite_export <- mat.or.vec(8, 1)
+    popsize_bysite_export <- mat.or.vec(7, 1)
     # combine site indices and starting population sizes to get a vector of individuals indexed by site
     individs_bysite <- rep(sites, popsize_bysite)
     # get latitude for each individual; this will be all the same latitude for a single population model
-    new_lat <- rep(41.26211791, length(individs_bysite))
+    #new_lat <- rep(41.26211791, length(individs_bysite))
+    new_lat <- state_lats[individs_bysite]
     # possible to allow annual variation in survival
     # survival_annual_var <- rnorm(1, 0, 0.311)
     survival_annual_var <- rnorm(1, 0, 0)
@@ -155,7 +160,7 @@ registerDoParallel(cl, cores=detectCores() - 2)
     # parameters and tide data are using a baseline of 2013, so they are indexed as (y+7) so that y = 1 is 2021; starting population size is for 2020 
     # year loop
     #for(y in 1:Y){
-      for(y in 1:3){
+    for(y in 1:3){
       # max breeding season: May 1 through August 31, in days since Jan 1 (day 1) in a non-leap year
       julian <- seq(from=121, to=243)
       # make this a matrix with number of rows = popsize and columns = number of days in breeding season
@@ -205,8 +210,8 @@ registerDoParallel(cl, cores=detectCores() - 2)
       
       # order tides from highest to lowest
       tides_ordered <- tides[order(tides, decreasing = TRUE)]
-      # create an index for whether that tide is a "save", determined by whether it is higher or equal to the W highest tide
-      save_index <- tides_byday > tides_ordered[W]
+      # create an index for whether that tide is a "save", determined by whether it is higher or equal to the X highest tides (X specified by num_saves)
+      save_index <- tides_byday > tides_ordered[num_saves]
       # create an empty matrix that will index whether each tide in the season is a save (1) or not (0)
       # with rows for the tides in each day and columns equal to the number of days in the season
       save_mat <- mat.or.vec(2, length(tides_byday[1,]))
@@ -219,6 +224,9 @@ registerDoParallel(cl, cores=detectCores() - 2)
       # if indiviuals are determined to be behind a gate and subject to saves, according to behind_gate, assign save_mat to their position in the array
       # otherwise their matrix stays all zeros (no saves)
       save_index_byind[, , behind_gate==1] <- save_mat
+      
+      # create an index for whether each individual is at a site with thin-layer deposition
+      dep_state <- rbinom(length(new_lat), 1, prop_dep[individs_bysite])
       
       # calculate the number of windows without a reproduction-stopping tide (one that would cause greater than 95% failure) 
       threshold_index[threshold_index >1] <- 1
@@ -290,12 +298,11 @@ registerDoParallel(cl, cores=detectCores() - 2)
       nest_succ_logit <- nest_succ_int + nest_succ_tide*tides_byday 
       nest_succ_logit <- replicate(length(individs_bysite), nest_succ_logit  + rnorm(1, 0, nest_succ_var), simplify="array")
       # increase nest success probability by the effect of thin layer deposition
-      #nest_succ_logit <- apply(nest_succ_logit, MARGIN = c(3), FUN = "-", nest_succ_tide*thin_layer[individs_bysite])
-      xx <- 1:length(individs_bysite)
-      thin_layer_adj <- function(xx){
-        nest_succ_logit[, , xx] - nest_succ_tide*thin_layer[individs_bysite][xx]
-      }
-      nest_succ_logit <- sapply(xx, FUN=thin_layer_adj, simplify="array")
+      #xx <- 1:length(individs_bysite)
+      #thin_layer_adj <- function(xx){
+      #  nest_succ_logit[, , xx] - nest_succ_tide*thin_layer_bystate[individs_bysite][xx]*dep_state[individs_bysite][xx]
+      #}
+      #nest_succ_logit <- sapply(xx, FUN=thin_layer_adj, simplify="array")
       succ_prob <- exp(nest_succ_logit)/(1+exp(nest_succ_logit))
       # adjust nest success probabilities so that survival probability = 1 for tides with saves
       succ_prob[save_index_byind==1] <- 1
@@ -454,7 +461,8 @@ registerDoParallel(cl, cores=detectCores() - 2)
       individs_bysite <- c(survivors_site_adults, survivors_site_chicks)
       
       # get new latitude for each individual; this will be a constant value for a single population model
-      new_lat <- rep(41.26211791, length(individs_bysite))
+      #new_lat <- rep(41.26211791, length(individs_bysite))
+      new_lat <- state_lats[individs_bysite]
       # possible to add in annual variation in survival for the next year
       # survival_annual_var <- rnorm(1, 0, .311)
       survival_annual_var <- rnorm(1, 0, 0)
@@ -473,7 +481,7 @@ registerDoParallel(cl, cores=detectCores() - 2)
       
       # calculate population size by site
       #popsize_bysite_export <- length(individs_bysite)
-      for(i in 1:8){
+      for(i in 1:7){
         #calculate population of survivors size by site
         popsize_bysite_export[i] <- length(which(individs_bysite==sites[i]))
       }
