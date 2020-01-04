@@ -18,7 +18,7 @@ E <- 2
 Y <-  50
 #Q <-1000
 Q <- 10
-W <- 20
+W <- 100
 # make sure the correct working directories are selected
 ### END CHECK THE FOLLOWING CONDITIONS BEFORE RUNNNG ###
 
@@ -44,10 +44,10 @@ library('doParallel')
 cl <- makeCluster(detectCores() - 2)
 registerDoParallel(cl, cores=detectCores() - 2)
 
-PVA <- foreach(q = 1:Q) %dopar% {
+#PVA <- foreach(q = 1:Q) %dopar% {
   # this for loop is for testing without using foreach
   #start_time <- proc.time()
-  #for(q in 1:1){
+  for(q in 1:1){
   # create an empty length(site)-by-Y-by-E array to store results; length(site) is one for single-population model
   popsize_matrix <- array(0, dim=c(1, Y + 1, E))
   # create an array for tracking the number of suitable breeding windows in each year
@@ -123,12 +123,13 @@ PVA <- foreach(q = 1:Q) %dopar% {
     }
     # create a vector of site indices
     # use just one site when simulating a single-population model (use 8 for LIS, since that sets it in the middle of the CT coastline)
-    sites <- 8:8
+    #sites <- 8:8
+    sites <- 1:8
     # starting population size
     #popsize_bysite <- 1500
-    popsize_bysite <- 1500
+    popsize_bysite <- c(10, 10, 10, 10, 10, 10, 10, 10)
     # vector of starting population sizes by site for exporting; this vector will update annually, while "popsize_bysite" will remain as the starting population sizes; there is only one site for a single-population model
-    popsize_bysite_export <- mat.or.vec(1, 1)
+    popsize_bysite_export <- mat.or.vec(8, 1)
     # combine site indices and starting population sizes to get a vector of individuals indexed by site
     individs_bysite <- rep(sites, popsize_bysite)
     # get latitude for each individual; this will be all the same latitude for a single population model
@@ -151,7 +152,8 @@ PVA <- foreach(q = 1:Q) %dopar% {
     
     # parameters and tide data are using a baseline of 2013, so they are indexed as (y+7) so that y = 1 is 2021; starting population size is for 2020 
     # year loop
-    for(y in 1:Y){
+    #for(y in 1:Y){
+      for(y in 1:3){
       # max breeding season: May 1 through August 31, in days since Jan 1 (day 1) in a non-leap year
       julian <- seq(from=121, to=243)
       # make this a matrix with number of rows = popsize and columns = number of days in breeding season
@@ -274,13 +276,13 @@ PVA <- foreach(q = 1:Q) %dopar% {
       
       # density dependence: only kicks in when population size is 3 times starting size
       allee_index <- mat.or.vec(8, 1)
-      for(i in 8:8){
-        allee_index[i] <- length(which(popsize_bysite_export[1] > (3*popsize_bysite[1])))
+      for(i in 1:8){
+        allee_index[i] <- length(which(popsize_bysite_export[i] > (3*popsize_bysite[i])))
       }
-      # get vectors that are the length of the # individuals to put in nest failure regression equation
+      # get vectors that are the length of the # individuals to put in nest success regression equation
       allee_index_individs <- allee_index[individs_bysite]
       # get an object for the how close the current population size is to 9 times the starting population size (as a proportion)
-      allee_prop <- (popsize_bysite_export/(9*popsize_bysite[1]))
+      allee_prop <- (popsize_bysite_export/(9*popsize_bysite))
       
       # nest success probabilities, which were previously drawn from MCMC
       nest_succ_logit <- nest_succ_int + nest_succ_tide*tides_byday 
@@ -290,7 +292,7 @@ PVA <- foreach(q = 1:Q) %dopar% {
       succ_prob[save_index_byind==1] <- 1
       succ_prob_day <- apply(succ_prob, MARGIN = c(2,3), FUN = prod)
       # density dependence kicks in at 3 times the starting populations size and increases gradually until its maximum at 9 times the population size
-      daily_surv <- succ_prob_day - succ_prob_day*allee_index_individs[1]*(.5/(1+exp(-(-8 + 25*(allee_prop-(1/3))))))
+      daily_surv <- succ_prob_day - t(t(succ_prob_day)*allee_index_individs[individs_bysite]*(.5/(1+exp(-(-8 + 25*(allee_prop[individs_bysite]-(1/3)))))))
       
       # create a window for the "vulnerable period"; each individual has a unique value, which does not vary over the breeding season
       window <- laying + incubation + chicks
@@ -461,11 +463,15 @@ PVA <- foreach(q = 1:Q) %dopar% {
       popsize <- length(individs_bysite)
       
       # calculate population size by site
-      popsize_bysite_export <- length(individs_bysite)
+      #popsize_bysite_export <- length(individs_bysite)
+      for(i in 1:8){
+        #calculate population of survivors size by site
+        popsize_bysite_export[i] <- length(which(individs_bysite==sites[i]))
+      }
       
       # choose whether to export fecundity or population size
       # use this to store population sizes
-      popsize_matrix[, y, e] <- popsize_bysite_export
+      popsize_matrix[, y, e] <- popsize
       # use this to store number of females produced/female
       # popsize_matrix[, y, e] <- fecundity
       
