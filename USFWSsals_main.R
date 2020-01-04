@@ -7,7 +7,7 @@
 # all years are nonleap years, but this does not matter for population simulations because the season always starts on May 1 (leap years do matter for projecting tides heights using tidal constituents)
 
 ### CHECK BEFORE RUNNING ###
-# consequential code for tide gate management is on LXXX; code for thin layer deposition is on LXXX
+# consequential code for tide gate management is on L328; code for thin layer deposition is on L320-324
 # check starting population sizes
 # check the minimum population size before the Y loop is broken
 ### END CHECK BEFORE RUNNING ###
@@ -527,3 +527,6 @@ PVA <- foreach(q = 1:Q) %dopar% {
 stopCluster(cl)
 
 proc.time() - start_time
+
+# save convention: "USFWSsals_", "Q"[no.iterations]"_", "gate_"|"TLD_", [specs], ".RData"
+save.image("/Users/chrisfield/Dropbox/USFWScontract/workspaces/test.RData")
