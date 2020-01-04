@@ -49,7 +49,7 @@ registerDoParallel(cl, cores=detectCores() - 2)
   #start_time <- proc.time()
   for(q in 1:1){
   # create an empty length(site)-by-Y-by-E array to store results; length(site) is one for single-population model
-  popsize_matrix <- array(0, dim=c(1, Y + 1, E))
+  popsize_matrix <- array(0, dim=c(8, Y + 1, E))
   # create an array for tracking the number of suitable breeding windows in each year
   #num_windows <- mat.or.vec(Y, 1)
   
@@ -117,9 +117,11 @@ registerDoParallel(cl, cores=detectCores() - 2)
   for(e in 1:E){
     num_windows <- mat.or.vec(Y, 1)
     if(e %% 2 == 0){
-      prop_behind_gate <- 0.3
+      prop_behind_gate <- c(0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3)
+      thin_layer <- c(0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01)
     } else{
-      prop_behind_gate <- 0
+      prop_behind_gate <- c(0, 0, 0, 0, 0, 0, 0, 0)
+      thin_layer <- c(0, 0, 0, 0, 0, 0, 0, 0)
     }
     # create a vector of site indices
     # use just one site when simulating a single-population model (use 8 for LIS, since that sets it in the middle of the CT coastline)
@@ -213,7 +215,7 @@ registerDoParallel(cl, cores=detectCores() - 2)
       # create an empty array so that every individual can have an independent matrix for save or not (save_mat)
       save_index_byind <- array(0, c(2, length(tides_byday[1,]), length(new_lat)))
       # randomly determine which individuals will be subject to saves according to a specified probability
-      behind_gate <- rbinom(length(new_lat), 1, prop_behind_gate)
+      behind_gate <- rbinom(length(new_lat), 1, prop_behind_gate[individs_bysite])
       # if indiviuals are determined to be behind a gate and subject to saves, according to behind_gate, assign save_mat to their position in the array
       # otherwise their matrix stays all zeros (no saves)
       save_index_byind[, , behind_gate==1] <- save_mat
@@ -286,9 +288,16 @@ registerDoParallel(cl, cores=detectCores() - 2)
       
       # nest success probabilities, which were previously drawn from MCMC
       nest_succ_logit <- nest_succ_int + nest_succ_tide*tides_byday 
-      nest_succ_logit <- replicate(length(individs_bysite), nest_succ_logit + rnorm(1, 0, nest_succ_var), simplify="array")
+      nest_succ_logit <- replicate(length(individs_bysite), nest_succ_logit  + rnorm(1, 0, nest_succ_var), simplify="array")
+      # increase nest success probability by the effect of thin layer deposition
+      #nest_succ_logit <- apply(nest_succ_logit, MARGIN = c(3), FUN = "-", nest_succ_tide*thin_layer[individs_bysite])
+      xx <- 1:length(individs_bysite)
+      thin_layer_adj <- function(xx){
+        nest_succ_logit[, , xx] - nest_succ_tide*thin_layer[individs_bysite][xx]
+      }
+      nest_succ_logit <- sapply(xx, FUN=thin_layer_adj, simplify="array")
       succ_prob <- exp(nest_succ_logit)/(1+exp(nest_succ_logit))
-      # adjust nest success probabilities so that survival probability = 1 on for tides with saves
+      # adjust nest success probabilities so that survival probability = 1 for tides with saves
       succ_prob[save_index_byind==1] <- 1
       succ_prob_day <- apply(succ_prob, MARGIN = c(2,3), FUN = prod)
       # density dependence kicks in at 3 times the starting populations size and increases gradually until its maximum at 9 times the population size
@@ -471,7 +480,7 @@ registerDoParallel(cl, cores=detectCores() - 2)
       
       # choose whether to export fecundity or population size
       # use this to store population sizes
-      popsize_matrix[, y, e] <- popsize
+      popsize_matrix[, y, e] <- popsize_bysite_export
       # use this to store number of females produced/female
       # popsize_matrix[, y, e] <- fecundity
       
