@@ -10,13 +10,18 @@
 # consequential code for tide gate management is on L328; code for thin layer deposition is on L320-324
 # check starting population sizes
 # check the minimum population size before the Y loop is broken
+# choose the correct SLR scenario
+# to run as a single population model: 1) change both instances of updating 'new_lat' to be a single repeating value (site 8 = Long Island Sound)
+#   2) activate 'sites <- 8:8', instead of 'site <- 1:7' 
+#   3) activate starting population as scalar instead of vector
+#   4) activate the line that stores each year's population size in the first row of 'popsize_matrix' 
+#   5) activate the correct functions for specifying density dependence, including the correct 'daily_surv'
 ### END CHECK BEFORE RUNNING ###
 
 # set working directory
 setwd("/Users/chrisfield/Dropbox/PVA/MCMC/GCB")
 
 start_time <- proc.time()
-
 # specify the number of iterations for each loop
 # E is demographic and environmental stochasticity (not necessary unless specifically partitioning uncertainty)
 # currently specified to run once without management (E = 1) and once to simulate either tide gate manipulation or thin layer deposition (E = 2)
@@ -26,15 +31,16 @@ E <- 2
 Y <-  50
 # Q is the number of iterations for estimating uncertainty from parameter estimation
 #Q <-1000
-Q <- 10
+Q <- 5
 # number of high tides in each season with tide gate manipulation
 num_saves <- 100
 # the proportion of individuals in each state that are behind tide gates
-behind_gate_bystate <- c(0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3)
+# when running as a single population model, make sure there is a value in position 8 as this is used for a global site, as in Field et al. 2016
+behind_gate_bystate <- c(0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3)
 # the proprotion of individuals in each state that are in marshes with thin layer deposition
-prop_dep_bystate <- c(0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3)
+prop_dep_bystate <- c(0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3)
 # the depth of thin layer deposition for each state
-thin_layer_bystate <- c(0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01)
+thin_layer_bystate <- c(0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01)
 # latitudes of a major marsh complex in each state to use as a covariate for determining values for reproductive parameters
 state_lats <- c(39.53554518, 40.59975147, 41.26211791, 41.48726854, 42.77556486, 43.07542386, 43.56329844)
 
@@ -61,10 +67,11 @@ registerDoParallel(cl, cores=detectCores() - 2)
 
 PVA <- foreach(q = 1:Q) %dopar% {
   # this for loop is for testing without using foreach
-  #start_time <- proc.time()
+  start_time <- proc.time()
   #for(q in 1:1){
   # create an empty length(site)-by-Y-by-E array to store results; length(site) = 1 for a single-population model
   popsize_matrix <- array(0, dim=c(7, Y + 1, E))
+  #popsize_matrix <- array(0, dim=c(1, Y + 1, E))
   
   # pull parameter values from posteriors
   # draw values for renesting probability; varies by date and latitude, but no individual variation beyond binomial sampling variance
@@ -139,11 +146,11 @@ PVA <- foreach(q = 1:Q) %dopar% {
       prop_dep <- prop_dep_bystate
     } else{
       # when e is odd, the proportion of nests behind tide gates or subject to thin layer deposition is 0
-      prop_behind_gate <- c(0, 0, 0, 0, 0, 0, 0)
-      prop_dep <- c(0, 0, 0, 0, 0, 0, 0)
+      prop_behind_gate <- c(0, 0, 0, 0, 0, 0, 0, 0)
+      prop_dep <- c(0, 0, 0, 0, 0, 0, 0, 0)
     }
     # create a vector of site indices
-    # use just one site when simulating a single-population model (use 8 for LIS, since that sets it in the middle of the CT coastline when referenced by SHARP sites)
+    # use just one site when simulating a single-population model (use 8 for Long Island Sound, since that sets it in the middle of the CT coastline when referenced by SHARP sites)
     #sites <- 8:8
     # there are seven states; in order: New Jersey (1), New York (2), Connecticut (3), Rhode Island (4), Massachusetts (5), New Hampshire (6), Maine (7)
     sites <- 1:7
@@ -151,7 +158,7 @@ PVA <- foreach(q = 1:Q) %dopar% {
     # for a single population
     #popsize_bysite <- 1500
     # for a group of sites
-    popsize_bysite <- c(10, 10, 10, 10, 10, 10, 10)
+    popsize_bysite <- c(250, 250, 250, 250, 250, 250, 250)
     # vector of starting population sizes by site for exporting; this vector will update annually, while "popsize_bysite" will remain as the starting population sizes
     # specify only one site for a single-population model
     popsize_bysite_export <- mat.or.vec(7, 1)
@@ -304,14 +311,28 @@ PVA <- foreach(q = 1:Q) %dopar% {
       renest_fail <- 1 - exp(renest_fail)/(1+exp(renest_fail))
       
       # density dependence: only kicks in when population size is 3 times starting size
-      allee_index <- mat.or.vec(8, 1)
-      for(i in 1:8){
+      # the first set of lines is for quantifying density dependence at the site-level 
+      # the second set is for a single-population model (with site set = 8, as in Field et al. 2016)
+      # for a group of sites
+      allee_index <- mat.or.vec(7, 1)
+      for(i in 1:7){
         allee_index[i] <- length(which(popsize_bysite_export[i] > (3*popsize_bysite[i])))
       }
       # specify vectors that are the length of the no. of individuals to put in nest success regression equation
       allee_index_individs <- allee_index[individs_bysite]
       # get an object for the how close the current population size is to 9 times the starting population size (as a proportion)
       allee_prop <- (popsize_bysite_export/(9*popsize_bysite))
+      
+      # for a single population
+      # density dependence: only kicks in when population size is 3 times starting size
+      #allee_index <- mat.or.vec(8, 1)
+      #for(i in 8:8){
+      #  allee_index[i] <- length(which(popsize > (3*popsize_bysite)))
+      #}
+      # specify vectors that are the length of the no. of individuals to put in nest success regression equation
+      #allee_index_individs <- allee_index[8]
+      # get an object for the how close the current population size is to 9 times the starting population size (as a proportion)
+      #allee_prop <- (popsize/(9*popsize_bysite))
       
       # nest success probabilities, which were drawn from posterior estimates in the Q loop
       nest_succ_logit <- nest_succ_int + nest_succ_tide*tides_byday 
@@ -329,7 +350,11 @@ PVA <- foreach(q = 1:Q) %dopar% {
       # get nest success probability by day instead of by tide
       succ_prob_day <- apply(succ_prob, MARGIN = c(2,3), FUN = prod)
       # density dependence kicks in at 3 times the starting populations size and increases gradually until its maximum at 9 times the population size
-      daily_surv <- succ_prob_day - t(t(succ_prob_day)*allee_index_individs[individs_bysite]*(.5/(1+exp(-(-8 + 25*(allee_prop[individs_bysite]-(1/3)))))))
+      # only one of the two versions of density dependence below should be active
+      # daily nest survival with site-level density dependence
+      daily_surv <- succ_prob_day - t(t(succ_prob_day)*allee_index_individs*(.5/(1+exp(-(-8 + 25*(allee_prop[individs_bysite]-(1/3)))))))
+      # daily nest survival for a single population 
+      #daily_surv <- succ_prob_day - succ_prob_day*allee_index_individs*(.5/(1+exp(-(-8 + 25*(allee_prop-(1/3))))))
       
       # create a window for the "vulnerable period"; each individual has a unique value, which does not vary over the breeding season
       window <- laying + incubation + chicks
@@ -510,6 +535,7 @@ PVA <- foreach(q = 1:Q) %dopar% {
       # choose whether to export fecundity or population size
       # use this to store population sizes
       popsize_matrix[, y, e] <- popsize_bysite_export
+      #popsize_matrix[1, y, e] <- popsize
       # use this to store no. of females produced/female
       # popsize_matrix[, y, e] <- fecundity
       
