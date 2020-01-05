@@ -51,6 +51,7 @@ surge_posteriors <- read.csv(file = "storm_surge_posteriors.csv", header=TRUE, s
 # load vital rates and SLR projections
 VitalRates <- read.csv(file = "IBM_parameters.csv", header=TRUE, sep=",", stringsAsFactors=FALSE, quote="")
 SLR_Rahm_all <- read.csv(file = "SLR_Rahmstorf.csv", header=TRUE, sep=",", stringsAsFactors=FALSE, quote="")
+SLR_Kopp_all <- read.csv(file = "SLR_Kopp.csv", header=FALSE, sep=",", stringsAsFactors=FALSE, quote="")
 # load nest success probabilities
 nest_succ <- read.csv(file = "nest_failure_MCMC.csv", header=TRUE, sep=",", stringsAsFactors=FALSE, quote="")
 # load values for adult survival
@@ -114,10 +115,13 @@ PVA <- foreach(q = 1:Q) %dopar% {
   survival_sitevector <- surv_CT[surv_bysite_row, 1]
   survival_siteSD <- surv_CT[surv_bysite_row, 2]
   
-  # get SLR from Vermeer and Rahmstorf 2009; subtract 10 because that is the value in 2013, the year before the first year of the simulation
+  # get SLR from Vermeer and Rahmstorf 2009; subtract 10 because that is the value in 2013, the year before the first year of the simulation in the original script
   # data are given in cm, and so are converted to ft to be consistent with NOAA tidal constituent data
   # column 3 of SLR_Rahm_all is for A1F1; 6 is for B1
   SLR_Rahm <- (SLR_Rahm_all[25:110 , 3] - 10)*0.0328084
+  # when using Kopp data, start at the 15th row, so that the first value is for 2014, the first year of the original script; subtract the value in 2013
+  # colum 2 is RCP 8.5, 3 is 4.5, and 4 is 2.6
+  #SLR_Kopp <- (SLR_Kopp_all[15:101 ,2] - SLR_Kopp_all[14 ,2])*0.0328084
   
   # draw values for storm surge parameters
   ssindex <- sample(1000, 1)
