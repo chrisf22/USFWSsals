@@ -73,8 +73,126 @@ loss_bin[loss_bin > 0] <- 1
 SHARP_patches_att <- cbind(lossStats$PatchID, loss_ha, cover_ha, observed, slope)
 colnames(SHARP_patches_att)[1] <- "PatchID"
 
-SHARP_patches_4plot <- cbind(lossStats$PatchID, loss_ha, cover_ha, observed, slope, lossStats$SALS_abund)
+
+SALS <- as.numeric(lossStats$SALS_abund)
+SALS[SALS>=9999] <- NA
+observed[is.nan(observed)] <- NA
+SHARP_patches_4plot <- cbind(lossStats$PatchID, loss_ha, cover_ha, observed, slope, SALS)
+SHARP_patches_4plot <- as.data.frame(SHARP_patches_4plot, stringsAsFactors = FALSE)
+SHARP_patches_4plot <- cbind(SHARP_patches_4plot, lossStats$STATE)
 colnames(SHARP_patches_4plot)[1] <- "PatchID"
+colnames(SHARP_patches_4plot)[7] <- "States"
+state_num <- lossStats$STATE
+state_num[state_num=='VA'] <- 1
+state_num[state_num=='MD'] <- 2
+state_num[state_num=='DE'] <- 3
+state_num[state_num=='NJ'] <- 4
+state_num[state_num=='NY'] <- 5
+state_num[state_num=='CT'] <- 6
+state_num[state_num=='RI'] <- 7
+state_num[state_num=='MA'] <- 8
+state_num[state_num=='NH'] <- 9
+state_num[state_num=='ME'] <- 10
+SHARP_patches_4plot <- cbind(SHARP_patches_4plot, as.numeric(state_num))
+colnames(SHARP_patches_4plot)[8] <- "state_num"
+SHARP_patches_4plot <- SHARP_patches_4plot[order(SHARP_patches_4plot$state_num), ]
+
+SHARP_patches_4plot$State <- factor(SHARP_patches_4plot$State, levels = c("VA", "MD", "DE", "NJ", "NY", "CT", "RI", "MA", "NH", "ME"))
 
 write.csv(SHARP_patches_att, "/users/chrisfield/Desktop/test.csv")
+
+###
+
+library(plotly)
+
+SHARP_patches_4plot <- as.data.frame(SHARP_patches_4plot, stringsAsFactors = FALSE)
+
+# updatemenus component
+updatemenus <- list(
+  list(
+    active = -1,
+    type= 'buttons',
+    x = -0.07,
+    buttons = list(
+      list(
+        label = "CT",
+        method = "update",
+        args = list(list(visible = c(TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)))),
+      
+      list(
+        label = "DE",
+        method = "update",
+        args = list(list(visible = c(FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)))), 
+      
+      list(
+        label = "MA",
+        method = "update",
+        args = list(list(visible = c(FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)))), 
+      
+      list(
+        label = "MD",
+        method = "update",
+        args = list(list(visible = c(FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)))), 
+      
+      list(
+        label = "ME",
+        method = "update",
+        args = list(list(visible = c(FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE)))), 
+      
+      list(
+        label = "NH",
+        method = "update",
+        args = list(list(visible = c(FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE)))), 
+      
+      list(
+        label = "NJ",
+        method = "update",
+        args = list(list(visible = c(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE)))), 
+      
+      list(
+        label = "NY",
+        method = "update",
+        args = list(list(visible = c(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE)))), 
+      
+      list(
+        label = "RI",
+        method = "update",
+        args = list(list(visible = c(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE)))), 
+      
+      list(
+        label = "VA",
+        method = "update",
+        args = list(list(visible = c(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE)))), 
+      
+      list(
+        label = "All",
+        method = "update",
+        args = list(list(visible = c(TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE)))))
+      
+  )
+)
+
+p1 <- SHARP_patches_4plot%>%group_by(States)%>%plot_ly(x = ~SALS, y = ~observed, text = ~paste("SHARP patch ID = ", PatchID), 
+        color = ~States, type="scatter", colors = "Paired", legendgroup= ~States, showlegend=TRUE, mode="markers") %>%
+  layout(title = "Apple",
+         xaxis=list(title="Saltmarsh sparrow abundance", type = "log", range = c(-3.8, 4)),
+         yaxis=list(title="Recent forest loss (proportion)", type = "log"),
+         updatemenus=updatemenus)
+
+p2 <- SHARP_patches_4plot%>%group_by(States)%>%plot_ly(x = ~SALS, y = ~cover_ha, text = ~paste("SHARP patch ID = ", PatchID), 
+              color = ~States, type="scatter", colors = "Paired", legendgroup= ~States, showlegend=FALSE, mode="markers") %>%
+  layout(title = "Apple",
+         xaxis=list(title="Saltmarsh sparrow abundance", type = "log", range = c(-3.8, 4)),
+         yaxis=list(title="Recent forest loss (ha)", type = "log"),
+         updatemenus=updatemenus, xaxis = list(type = "log"), yaxis = list(type = "log"))
+
+p3 <- SHARP_patches_4plot%>%group_by(States)%>%plot_ly(x = ~SALS, y = ~slope, text = ~paste("SHARP patch ID = ", PatchID), 
+                                                       color = ~States, type="scatter", colors = "Paired", legendgroup= ~States, showlegend=FALSE, mode="markers") %>%
+  layout(title = "Saltmarsh sparrow abundance vs. marsh migration potential",
+         xaxis=list(title="Saltmarsh sparrow abundance", type = "log", range = c(-3.8, 4)),
+         yaxis=list(title="Slope (degrees)", type = "log"),
+         updatemenus=updatemenus, xaxis = list(type = "log"))
+
+subplot(p1, p2, p3, titleY = TRUE, titleX = TRUE, margin = 0.05)
+
 
