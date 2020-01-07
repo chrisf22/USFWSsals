@@ -3,7 +3,7 @@
 # for 100 m buffer
 setwd("/users/chrisfield/Documents/folders/SESYNC/GEEfiles/GEE_exports_20_100m/")
 
-# load files that were exported from GEE
+# load files that were exported from Google Earth Engine
 lossStats <- read.csv(file = "lossStats.csv", header=TRUE, sep=",", stringsAsFactors=FALSE)
 gainStats <- read.csv(file = "gainStats.csv", header=TRUE, sep=",", stringsAsFactors=FALSE)
 coverStats <- read.csv(file = "coverStats.csv", header=TRUE, sep=",", stringsAsFactors=FALSE)
@@ -63,26 +63,37 @@ area <- log(cover)
 #area <- cover
 slope <- slopeStats$mean
 #[coverStats$sum>0]
-# 117 values for slope are NAs; temp replaces zeros with mean slope
+# 117 values for slope are NAs; temporarily replace with mean slope
 slope[is.na(slope)] <- mean(slope, na.rm=TRUE)
 # create binomial variable for loss or not at the patch level
 loss_bin <- loss
 loss_bin[loss_bin > 0] <- 1
 
-# bind forest cover, loss, and slope states to object that will be used to merge with SHARP patch layer attribute table
+# bind forest cover, loss, and slope to object that will be used to merge with SHARP patch layer attribute table
 SHARP_patches_att <- cbind(lossStats$PatchID, loss_ha, cover_ha, observed, slope)
 colnames(SHARP_patches_att)[1] <- "PatchID"
 
-
+# create a numeric vector for SALS abundace
 SALS <- as.numeric(lossStats$SALS_abund)
+# replace missing value notation from SHARP patch layer with NAs
 SALS[SALS>=9999] <- NA
+# some values for observed are NaN since patches with no forest in 2000 were not removed
+# replace NaN with NAs
 observed[is.nan(observed)] <- NA
+# create a matrix with SHARP patch ID, forest loss and cover, slope, and SALS abundance
 SHARP_patches_4plot <- cbind(lossStats$PatchID, loss_ha, cover_ha, observed, slope, SALS)
+# turn matrix into a data frame
 SHARP_patches_4plot <- as.data.frame(SHARP_patches_4plot, stringsAsFactors = FALSE)
+# bind data frame with column for state
 SHARP_patches_4plot <- cbind(SHARP_patches_4plot, lossStats$STATE)
+# specify names for columns without
 colnames(SHARP_patches_4plot)[1] <- "PatchID"
 colnames(SHARP_patches_4plot)[7] <- "States"
+# two strategies for getting the legends in 'plotly' in geographic rather than alphabetical order
+# first created a sortable index for state; second treat state as a factor and specify the proper factor order
+# create a character vector for state
 state_num <- lossStats$STATE
+# replace alpha codes with numbers to allow sorting
 state_num[state_num=='VA'] <- 1
 state_num[state_num=='MD'] <- 2
 state_num[state_num=='DE'] <- 3
@@ -93,21 +104,24 @@ state_num[state_num=='RI'] <- 7
 state_num[state_num=='MA'] <- 8
 state_num[state_num=='NH'] <- 9
 state_num[state_num=='ME'] <- 10
+# bind numeric state index to data frame
 SHARP_patches_4plot <- cbind(SHARP_patches_4plot, as.numeric(state_num))
+# specify column name for numeric state index
 colnames(SHARP_patches_4plot)[8] <- "state_num"
+# order the data frame by the state numeric index, from south the north
 SHARP_patches_4plot <- SHARP_patches_4plot[order(SHARP_patches_4plot$state_num), ]
-
+# specify factors for alpha state index from south the north
 SHARP_patches_4plot$State <- factor(SHARP_patches_4plot$State, levels = c("VA", "MD", "DE", "NJ", "NY", "CT", "RI", "MA", "NH", "ME"))
 
-write.csv(SHARP_patches_att, "/users/chrisfield/Desktop/test.csv")
+# export forest stats to be merged with SHARP patch layer .shp in QGIS
+write.csv(SHARP_patches_att, "/users/chrisfield/Desktop/USFWSsals_foreststats.csv")
 
 ###
 
 library(plotly)
 
-SHARP_patches_4plot <- as.data.frame(SHARP_patches_4plot, stringsAsFactors = FALSE)
-
 # updatemenus component
+# create buttons that toggle on/off the points for each state; states are specified in alphabetical order by default in 'plotly'
 updatemenus <- list(
   list(
     active = -1,
@@ -168,31 +182,35 @@ updatemenus <- list(
         label = "All",
         method = "update",
         args = list(list(visible = c(TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE)))))
-      
   )
 )
 
+# create 3 plots to be combined into one subplot; legend is turned off for all but 1; these lines primarily use piping to set plot parameters
 p1 <- SHARP_patches_4plot%>%group_by(States)%>%plot_ly(x = ~SALS, y = ~observed, text = ~paste("SHARP patch ID = ", PatchID), 
-        color = ~States, type="scatter", colors = "Paired", legendgroup= ~States, showlegend=TRUE, mode="markers") %>%
-  layout(title = "Apple",
+                                                       color = ~States, type="scatter", colors = "Paired", legendgroup= ~States, 
+                                                       showlegend=TRUE, mode="markers") %>%
+  layout(title = " ",
          xaxis=list(title="Saltmarsh sparrow abundance", type = "log", range = c(-3.8, 4)),
          yaxis=list(title="Recent forest loss (proportion)", type = "log"),
          updatemenus=updatemenus)
 
 p2 <- SHARP_patches_4plot%>%group_by(States)%>%plot_ly(x = ~SALS, y = ~cover_ha, text = ~paste("SHARP patch ID = ", PatchID), 
-              color = ~States, type="scatter", colors = "Paired", legendgroup= ~States, showlegend=FALSE, mode="markers") %>%
-  layout(title = "Apple",
+                                                       color = ~States, type="scatter", colors = "Paired", legendgroup= ~States, 
+                                                       showlegend=FALSE, mode="markers") %>%
+  layout(title = " ",
          xaxis=list(title="Saltmarsh sparrow abundance", type = "log", range = c(-3.8, 4)),
          yaxis=list(title="Recent forest loss (ha)", type = "log"),
          updatemenus=updatemenus, xaxis = list(type = "log"), yaxis = list(type = "log"))
 
 p3 <- SHARP_patches_4plot%>%group_by(States)%>%plot_ly(x = ~SALS, y = ~slope, text = ~paste("SHARP patch ID = ", PatchID), 
-                                                       color = ~States, type="scatter", colors = "Paired", legendgroup= ~States, showlegend=FALSE, mode="markers") %>%
+                                                       color = ~States, type="scatter", colors = "Paired", legendgroup= ~States, 
+                                                       showlegend=FALSE, mode="markers") %>%
   layout(title = "Saltmarsh sparrow abundance vs. marsh migration potential",
          xaxis=list(title="Saltmarsh sparrow abundance", type = "log", range = c(-3.8, 4)),
          yaxis=list(title="Slope (degrees)", type = "log"),
          updatemenus=updatemenus, xaxis = list(type = "log"))
 
+# combine plots 1:3 into a subplot; to export as html, plot in RStudio and choose Export > Save as webpage...
 subplot(p1, p2, p3, titleY = TRUE, titleX = TRUE, margin = 0.05)
 
 
