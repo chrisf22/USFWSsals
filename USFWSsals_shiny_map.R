@@ -1,14 +1,6 @@
 library(shiny)
 library(leaflet)
 
-# to avoid warnings, make all zeros in SHARP_patches_4plot = NA
-SHARP_patches_4plot[SHARP_patches_4plot == 0] <- NA
-
-# 'SHARP_patches_4plot' must be in workspace
-colnames(SHARP_patches_4plot)[1] <- "SHARP_Patch_ID"
-colnames(SHARP_patches_4plot)[4] <- "Forest_loss"
-colnames(SHARP_patches_4plot)[6] <- "Saltmarsh_Sparrow_abundance"
-
 ui <- fluidPage(
   # hide errors from shiny app so plots don't immediately load with errors
   tags$style(type="text/css",
@@ -31,6 +23,14 @@ ui <- fluidPage(
 
 server <- function(input, output, session) {
   
+  load("SHARP_patches_wforest.RData")
+  # to avoid warnings, make all zeros in SHARP_patches_4plot = NA
+  SHARP_patches_4plot[SHARP_patches_4plot == 0] <- NA
+  # 'SHARP_patches_4plot' must be in workspace
+  colnames(SHARP_patches_4plot)[1] <- "SHARP_Patch_ID"
+  colnames(SHARP_patches_4plot)[4] <- "Forest_loss"
+  colnames(SHARP_patches_4plot)[6] <- "Saltmarsh_Sparrow_abundance"
+    
   output$click_info <- renderPrint({
     nearPoints(SHARP_patches_4plot, xvar="Saltmarsh_Sparrow_abundance", yvar="Forest_loss", input$plot2_click, addDist = TRUE)[,c("SHARP_Patch_ID", "Forest_loss", "Saltmarsh_Sparrow_abundance")]
   })
