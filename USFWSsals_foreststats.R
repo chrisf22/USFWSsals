@@ -81,14 +81,14 @@ SALS[SALS>=9999] <- NA
 # replace NaN with NAs
 observed[is.nan(observed)] <- NA
 # create a matrix with SHARP patch ID, forest loss and cover, slope, and SALS abundance
-SHARP_patches_4plot <- cbind(lossStats$PatchID, loss_ha, cover_ha, observed, slope, SALS)
+SHARP_patches_4plot <- cbind(lossStats$PatchID, loss_ha, cover_ha, observed, slope, SALS, lat, long)
 # turn matrix into a data frame
 SHARP_patches_4plot <- as.data.frame(SHARP_patches_4plot, stringsAsFactors = FALSE)
 # bind data frame with column for state
 SHARP_patches_4plot <- cbind(SHARP_patches_4plot, lossStats$STATE)
 # specify names for columns without
 colnames(SHARP_patches_4plot)[1] <- "PatchID"
-colnames(SHARP_patches_4plot)[7] <- "States"
+colnames(SHARP_patches_4plot)[9] <- "States"
 # two strategies for getting the legends in 'plotly' in geographic rather than alphabetical order
 # first created a sortable index for state; second treat state as a factor and specify the proper factor order
 # create a character vector for state
@@ -107,11 +107,11 @@ state_num[state_num=='ME'] <- 10
 # bind numeric state index to data frame
 SHARP_patches_4plot <- cbind(SHARP_patches_4plot, as.numeric(state_num))
 # specify column name for numeric state index
-colnames(SHARP_patches_4plot)[8] <- "state_num"
+colnames(SHARP_patches_4plot)[10] <- "state_num"
 # order the data frame by the state numeric index, from south the north
 SHARP_patches_4plot <- SHARP_patches_4plot[order(SHARP_patches_4plot$state_num), ]
 # specify factors for alpha state index from south the north
-SHARP_patches_4plot$State <- factor(SHARP_patches_4plot$State, levels = c("VA", "MD", "DE", "NJ", "NY", "CT", "RI", "MA", "NH", "ME"))
+SHARP_patches_4plot$States <- factor(SHARP_patches_4plot$States, levels = c("VA", "MD", "DE", "NJ", "NY", "CT", "RI", "MA", "NH", "ME"))
 
 # export forest stats to be merged with SHARP patch layer .shp in QGIS
 write.csv(SHARP_patches_att, "/users/chrisfield/Desktop/USFWSsals_foreststats.csv")
