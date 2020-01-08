@@ -129,52 +129,52 @@ updatemenus <- list(
     x = -0.07,
     buttons = list(
       list(
-        label = "CT",
+        label = "VA",
         method = "update",
         args = list(list(visible = c(TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)))),
       
       list(
-        label = "DE",
+        label = "MD",
         method = "update",
         args = list(list(visible = c(FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)))), 
       
       list(
-        label = "MA",
+        label = "DE",
         method = "update",
         args = list(list(visible = c(FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)))), 
       
       list(
-        label = "MD",
+        label = "NJ",
         method = "update",
         args = list(list(visible = c(FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)))), 
       
       list(
-        label = "ME",
+        label = "NY",
         method = "update",
         args = list(list(visible = c(FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE)))), 
       
       list(
-        label = "NH",
+        label = "CT",
         method = "update",
         args = list(list(visible = c(FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE)))), 
       
       list(
-        label = "NJ",
+        label = "RI",
         method = "update",
         args = list(list(visible = c(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE)))), 
       
       list(
-        label = "NY",
+        label = "MA",
         method = "update",
         args = list(list(visible = c(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE)))), 
       
       list(
-        label = "RI",
+        label = "NH",
         method = "update",
         args = list(list(visible = c(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE)))), 
       
       list(
-        label = "VA",
+        label = "ME",
         method = "update",
         args = list(list(visible = c(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE)))), 
       
