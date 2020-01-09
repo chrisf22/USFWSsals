@@ -11,6 +11,7 @@ slopeStats <- read.csv(file = "slopeStatsDEM.csv", header=TRUE, sep=",", strings
 treeCoverStats <- read.csv(file = "treeCoverStats.csv", header=TRUE, sep=",", stringsAsFactors=FALSE)
 totalCoverStats <- read.csv(file = "totalCoverStats.csv", header=TRUE, sep=",", stringsAsFactors=FALSE)
 naturalStats <- read.csv(file = "naturalStats.csv", header=TRUE, sep=",", stringsAsFactors=FALSE)
+tide_restsStats <- read.csv(file = "tide_restsStats.csv", header=TRUE, sep=",", stringsAsFactors=FALSE)
 
 # calcualte some general stats on forest cover adjacent to tidal marshes
 # not medium or high density development (23 or 24) according to NLCD
@@ -33,7 +34,7 @@ treeCoverPropNatural <- sum(treeCover)/sum(natural)
 loss <- lossStats$sum
 #[coverStats$sum>0]
 # get loss in hectares
-loss_ha <- loss*0.003
+loss_ha <- loss*0.09
 # total number of pixels that experience gain in each patch
 gain <- gainStats$sum
 #[coverStats$sum>0]
@@ -43,7 +44,7 @@ treecover <- treeCoverStats$sum
 # binary sum of forest cover in 2000
 cover <- coverStats$sum
 # get binary sum of forest cover in 2000 in hectares
-cover_ha <- cover*0.003
+cover_ha <- cover*0.09
 #[coverStats$sum>0]
 # proportion of each patch that experiences forest loss between 2000-2018
 observed <- lossStats$sum/coverStats$sum
@@ -68,10 +69,29 @@ slope[is.na(slope)] <- mean(slope, na.rm=TRUE)
 # create binomial variable for loss or not at the patch level
 loss_bin <- loss
 loss_bin[loss_bin > 0] <- 1
+# the area of restricted tidal marsh (in terms of number of pixels); multiplied by 0.09 to get in ha
+tide_rests <- tide_restsStats$sum*0.09
 
 # bind forest cover, loss, and slope to object that will be used to merge with SHARP patch layer attribute table
 SHARP_patches_att <- cbind(lossStats$PatchID, loss_ha, cover_ha, observed, slope)
 colnames(SHARP_patches_att)[1] <- "PatchID"
+
+# bind area of tidal restriction and SALS abundance to inform population model
+SHARP_patches_rest <- cbind(lossStats$PatchID, tide_rests, SALS)
+# turn matrix into a data frame
+SHARP_patches_rest <- as.data.frame(SHARP_patches_rest, stringsAsFactors = FALSE)
+# bind data frame with column for state
+SHARP_patches_rest <- cbind(SHARP_patches_rest, lossStats$STATE)
+colnames(SHARP_patches_rest)[1] <- "PatchID"
+colnames(SHARP_patches_rest)[4] <- "States"
+
+#get the area of restricted marsh by state
+state_index <- unique(SHARP_patches_rest$States)
+tide_rests_bystate <- mat.or.vec(length(state_index), 1)
+for(i in 1:length(state_index)){
+  tide_rests_bystate[i] <- sum(SHARP_patches_rest$tide_rests[SHARP_patches_rest$States==state_index[i]])
+}
+tide_rests_bystate_table <- cbind(state_index, as.data.frame(tide_rests_bystate))
 
 # create a numeric vector for SALS abundace
 SALS <- as.numeric(lossStats$SALS_abund)
