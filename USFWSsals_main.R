@@ -31,7 +31,7 @@ E <- 2
 Y <-  50
 # Q is the number of iterations for estimating uncertainty from parameter estimation
 #Q <-1000
-Q <- 5
+Q <- 10
 # number of high tides in each season with tide gate manipulation
 num_saves <- 100
 # the proportion of individuals in each state that are behind tide gates
@@ -69,7 +69,7 @@ registerDoParallel(cl, cores=detectCores() - 2)
 
 PVA <- foreach(q = 1:Q) %dopar% {
   # this for loop is for testing without using foreach
-  start_time <- proc.time()
+  #start_time <- proc.time()
   #for(q in 1:1){
   # create an empty length(site)-by-Y-by-E array to store results; length(site) = 1 for a single-population model
   popsize_matrix <- array(0, dim=c(7, Y + 1, E))
@@ -123,7 +123,7 @@ PVA <- foreach(q = 1:Q) %dopar% {
   # when using Kopp data, start at the 15th row, so that the first value is for 2014, the first year of the original script; subtract the value in 2013
   # set as RCP 8.5, 6.0, 4.5, or 2.6 (make sure both objects are specified as the correct scenario)
   SLR_sample <- sample(10000, 1)
-  SLR_Kopp <- (SLR_Kopp_scen85[SLR_sample ,15:101] - SLR_Kopp_scen85[SLR_sample , 15:101])*0.0328084
+  SLR_Kopp <- as.numeric((SLR_Kopp_scen85[SLR_sample, 15:101] - SLR_Kopp_scen85[SLR_sample, 14])*0.0328084)
   
   # draw values for storm surge parameters
   ssindex <- sample(1000, 1)
