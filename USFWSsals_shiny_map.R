@@ -13,7 +13,7 @@ ui <- fluidPage(
   fluidRow(
     column(6,
            plotOutput("plot2", click = "plot2_click", height = "600px"),
-           helpText("Click on a point to see its location on the map")
+           helpText("Click on a point to see its location in the map window. Data for the mapped location is shown below the window. ")
     ),
     column(6,
            leafletOutput("mymap", height = "600px"),
@@ -40,7 +40,7 @@ server <- function(input, output, session) {
   
   output$plot2 <- renderPlot({
     plot(SHARP_patches_4plot$Saltmarsh_Sparrow_abundance, SHARP_patches_4plot$Forest_loss, log="xy", xaxt="n", yaxt="n", 
-         xlab="Saltmarsh sparrow abundance", ylab="Forest loss (poportion)", bty="n", pch=16, col=rgb(0, 0, 0, 0.5), cex=1.5, cex.lab=1.25)
+         xlab="Saltmarsh sparrow abundance", ylab="Forest loss (poportion of patch)", bty="n", pch=16, col=rgb(0, 0, 0, 0.5), cex=1.5, cex.lab=1.25)
     axis(side=1, at=c(0.0001, 0.01, 1, 100, 10000), 
          labels=c('0.0001', '0.01', '1', '100', '10000'), cex.axis=1.25)
     axis(side=2, at=c(0.0001, 0.001, 0.01, 0.1, 1), 
