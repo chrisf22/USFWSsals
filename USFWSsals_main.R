@@ -51,7 +51,8 @@ surge_posteriors <- read.csv(file = "storm_surge_posteriors.csv", header=TRUE, s
 # load vital rates and SLR projections
 VitalRates <- read.csv(file = "IBM_parameters.csv", header=TRUE, sep=",", stringsAsFactors=FALSE, quote="")
 SLR_Rahm_all <- read.csv(file = "SLR_Rahmstorf.csv", header=TRUE, sep=",", stringsAsFactors=FALSE, quote="")
-SLR_Kopp_all <- read.csv(file = "SLR_Kopp.csv", header=FALSE, sep=",", stringsAsFactors=FALSE, quote="")
+SLR_Kopp_scen85 <- read.csv(file = "SLR_Kopp_scen85.csv", header=FALSE, sep=",", stringsAsFactors=FALSE, quote="")
+SLR_Kopp_scen26 <- read.csv(file = "SLR_Kopp_scen26.csv", header=FALSE, sep=",", stringsAsFactors=FALSE, quote="")
 # load nest success probabilities
 nest_succ <- read.csv(file = "nest_failure_MCMC.csv", header=TRUE, sep=",", stringsAsFactors=FALSE, quote="")
 # load values for adult survival
@@ -118,10 +119,11 @@ PVA <- foreach(q = 1:Q) %dopar% {
   # get SLR from Vermeer and Rahmstorf 2009; subtract 10 because that is the value in 2013, the year before the first year of the simulation in the original script
   # data are given in cm, and so are converted to ft to be consistent with NOAA tidal constituent data
   # column 3 of SLR_Rahm_all is for A1F1; 6 is for B1
-  SLR_Rahm <- (SLR_Rahm_all[25:110 , 3] - 10)*0.0328084
+  #SLR_Rahm <- (SLR_Rahm_all[25:110 , 3] - 10)*0.0328084
   # when using Kopp data, start at the 15th row, so that the first value is for 2014, the first year of the original script; subtract the value in 2013
-  # colum 2 is RCP 8.5, 3 is 4.5, and 4 is 2.6
-  #SLR_Kopp <- (SLR_Kopp_all[15:101 ,2] - SLR_Kopp_all[14 ,2])*0.0328084
+  # set as RCP 8.5, 6.0, 4.5, or 2.6 (make sure both objects are specified as the correct scenario)
+  SLR_sample <- sample(10000, 1)
+  SLR_Kopp <- (SLR_Kopp_scen85[SLR_sample ,15:101] - SLR_Kopp_scen85[SLR_sample , 15:101])*0.0328084
   
   # draw values for storm surge parameters
   ssindex <- sample(1000, 1)
@@ -229,7 +231,7 @@ PVA <- foreach(q = 1:Q) %dopar% {
       tides <- tidessanszero + surgepredic
       
       # add rise scenario; 0.0017666 ft is the global rate of SLR between 1979 and 2014 (which was removed before non-tidal fluctuation modeling); 35 is the number of years in this time period
-      tides <- tides + SLR_Rahm[(y+7)] - accretion*(y+7) + 35*0.0017666
+      tides <- tides + SLR_Kopp[(y+7)] - accretion*(y+7) + 35*0.0017666
       threshold_index <- mat.or.vec(123, 1)
       tides_byday <- mat.or.vec(2, 123)
       for(i in min(julian):max(julian)){
@@ -518,11 +520,11 @@ PVA <- foreach(q = 1:Q) %dopar% {
       # survival_annual_var <- rnorm(1, 0, .311)
       survival_annual_var <- rnorm(1, 0, 0)
       # get backtransformed survival for each individual for the next year
-      survival_logit <- survival_sitevector + rnorm(length(individs_bysite), 0, survival_siteSD)
+      survival_logit <- survival_sitevector + rnorm(length(new_lat), 0, survival_siteSD)
       survival <- exp(survival_logit)/(1+exp(survival_logit))
       # get new first egg date for each indiviudal
-      start_date <- rep(141, length(individs_bysite))
-      end_date <- rep(203, length(individs_bysite))
+      start_date <- rep(141, length(new_lat))
+      end_date <- rep(203, length(new_lat))
       
       # no. of females produced/female
       fecundity <- length(survivors_site_chicks)/popsize
