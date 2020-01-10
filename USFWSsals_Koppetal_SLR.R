@@ -83,7 +83,7 @@ for(i in 1:10000){
 NYC_LSL_rcp85_int[i, ] <- predict(loess(NYC_LSL_rcp85[i,] ~ x, span=0.5), x)
 }
 # divided by 10 to covert mm to cm
-write.csv(Kopp_all/10, "/Users/chrisfield/Dropbox/PVA/MCMC/GCB/SLR_Kopp_scen85.csv")
+write.csv(NYC_LSL_rcp85_int/10, "/Users/chrisfield/Dropbox/PVA/MCMC/GCB/SLR_Kopp_scen85.csv")
 
 plot(predict(loess(NYC_LSL_rcp60[1,] ~ x, span=0.5), x))
 NYC_LSL_rcp60_int <- mat.or.vec(10000, 101)
@@ -91,7 +91,7 @@ for(i in 1:10000){
   NYC_LSL_rcp60_int[i, ] <- predict(loess(NYC_LSL_rcp60[i,] ~ x, span=0.5), x)
 }
 # divided by 10 to covert mm to cm
-write.csv(Kopp_all/10, "/Users/chrisfield/Dropbox/PVA/MCMC/GCB/SLR_Kopp_scen60.csv")
+write.csv(NYC_LSL_rcp60_int/10, "/Users/chrisfield/Dropbox/PVA/MCMC/GCB/SLR_Kopp_scen60.csv")
 
 plot(predict(loess(NYC_LSL_rcp45[1,] ~ x, span=0.5), x))
 NYC_LSL_rcp45_int <- mat.or.vec(10000, 101)
@@ -99,7 +99,7 @@ for(i in 1:10000){
   NYC_LSL_rcp45_int[i, ] <- predict(loess(NYC_LSL_rcp45[i,] ~ x, span=0.5), x)
 }
 # divided by 10 to covert mm to cm
-write.csv(Kopp_all/10, "/Users/chrisfield/Dropbox/PVA/MCMC/GCB/SLR_Kopp_scen45.csv")
+write.csv(NYC_LSL_rcp45_int/10, "/Users/chrisfield/Dropbox/PVA/MCMC/GCB/SLR_Kopp_scen45.csv")
 
 plot(predict(loess(NYC_LSL_rcp26[1,] ~ x, span=0.5), x))
 NYC_LSL_rcp26_int <- mat.or.vec(10000, 101)
@@ -107,7 +107,7 @@ for(i in 1:10000){
   NYC_LSL_rcp26_int[i, ] <- predict(loess(NYC_LSL_rcp26[i,] ~ x, span=0.5), x)
 }
 # divided by 10 to covert mm to cm
-write.csv(Kopp_all/10, "/Users/chrisfield/Dropbox/PVA/MCMC/GCB/SLR_Kopp_scen26.csv")
+write.csv(NYC_LSL_rcp26_int/10, "/Users/chrisfield/Dropbox/PVA/MCMC/GCB/SLR_Kopp_scen26.csv")
 
 plot(colMeans(NYC_LSL_rcp85_int), type="l")
 lines(colMeans(NYC_LSL_rcp60_int), type="l", col="red")
