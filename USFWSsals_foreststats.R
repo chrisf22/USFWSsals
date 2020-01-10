@@ -211,7 +211,7 @@ p1 <- SHARP_patches_4plot%>%group_by(States)%>%plot_ly(x = ~SALS, y = ~observed,
                                                        showlegend=TRUE, mode="markers") %>%
   layout(title = " ",
          xaxis=list(title="Saltmarsh sparrow abundance", type = "log", range = c(-3.8, 4)),
-         yaxis=list(title="Recent forest loss (proportion)", type = "log"),
+         yaxis=list(title="Recent forest loss (proportion of patch)", type = "log"),
          updatemenus=updatemenus)
 
 p2 <- SHARP_patches_4plot%>%group_by(States)%>%plot_ly(x = ~SALS, y = ~cover_ha, text = ~paste("SHARP patch ID = ", PatchID), 
@@ -219,7 +219,7 @@ p2 <- SHARP_patches_4plot%>%group_by(States)%>%plot_ly(x = ~SALS, y = ~cover_ha,
                                                        showlegend=FALSE, mode="markers") %>%
   layout(title = " ",
          xaxis=list(title="Saltmarsh sparrow abundance", type = "log", range = c(-3.8, 4)),
-         yaxis=list(title="Recent forest loss (ha)", type = "log"),
+         yaxis=list(title="Area of forest within 100m of marsh (ha)", type = "log"),
          updatemenus=updatemenus, xaxis = list(type = "log"), yaxis = list(type = "log"))
 
 p3 <- SHARP_patches_4plot%>%group_by(States)%>%plot_ly(x = ~SALS, y = ~slope, text = ~paste("SHARP patch ID = ", PatchID), 
