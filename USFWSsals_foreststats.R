@@ -12,6 +12,7 @@ treeCoverStats <- read.csv(file = "treeCoverStats.csv", header=TRUE, sep=",", st
 totalCoverStats <- read.csv(file = "totalCoverStats.csv", header=TRUE, sep=",", stringsAsFactors=FALSE)
 naturalStats <- read.csv(file = "naturalStats.csv", header=TRUE, sep=",", stringsAsFactors=FALSE)
 tide_restsStats <- read.csv(file = "tide_restsStats.csv", header=TRUE, sep=",", stringsAsFactors=FALSE)
+tide_restsStats <- tide_restsStats[match(lossStats$PatchID, tide_restsStats$PatchID), ]
 
 # calcualte some general stats on forest cover adjacent to tidal marshes
 # not medium or high density development (23 or 24) according to NLCD
@@ -71,32 +72,49 @@ loss_bin <- loss
 loss_bin[loss_bin > 0] <- 1
 # the area of restricted tidal marsh (in terms of number of pixels); multiplied by 0.09 to get in ha
 tide_rests <- tide_restsStats$sum*0.09
+# create a numeric vector for SALS abundace
+SALS <- as.numeric(lossStats$SALS_abund)
+# replace missing value notation from SHARP patch layer with NAs
+SALS[SALS>=9999] <- NA
 
 # bind forest cover, loss, and slope to object that will be used to merge with SHARP patch layer attribute table
 SHARP_patches_att <- cbind(lossStats$PatchID, loss_ha, cover_ha, observed, slope)
 colnames(SHARP_patches_att)[1] <- "PatchID"
 
+# create a vector for the proportion of each SHARP patch that is restricted
+# because of small differences between the raster and vector boundaries, some values can be more than one
+# change values greater than one to one
+prop_rests <- tide_rests/lossStats$area_ha
+prop_rests[prop_rests > 1] <- 1
+# get the proportion of the saltmarsh sparrow population behind tidal restrictions as:
+# the patch level abundance x the proportion of the patch that is restricted
+# to avoid NAs, patches with missing values for saltmarsh sparrow abundance are zeros
+SALS_noNA <- SALS
+SALS_noNA[is.na(SALS_noNA)] <- 0
+SALS_rests <- SALS_noNA*prop_rests
 # bind area of tidal restriction and SALS abundance to inform population model
-SHARP_patches_rest <- cbind(lossStats$PatchID, tide_rests, SALS)
+SHARP_patches_rest <- cbind(lossStats$PatchID, tide_rests, SALS, lossStats$area_ha, prop_rests, SALS_rests)
 # turn matrix into a data frame
 SHARP_patches_rest <- as.data.frame(SHARP_patches_rest, stringsAsFactors = FALSE)
 # bind data frame with column for state
 SHARP_patches_rest <- cbind(SHARP_patches_rest, lossStats$STATE)
 colnames(SHARP_patches_rest)[1] <- "PatchID"
-colnames(SHARP_patches_rest)[4] <- "States"
+colnames(SHARP_patches_rest)[7] <- "States"
 
 #get the area of restricted marsh by state
 state_index <- unique(SHARP_patches_rest$States)
 tide_rests_bystate <- mat.or.vec(length(state_index), 1)
+SALS_rests_bystate <- mat.or.vec(length(state_index), 1)
+SALS_bystate <- mat.or.vec(length(state_index), 1)
 for(i in 1:length(state_index)){
+  SALS_bystate[i] <- sum(SHARP_patches_rest$SALS[SHARP_patches_rest$States==state_index[i]])
+  SALS_rests_bystate[i] <- sum(SHARP_patches_rest$SALS_rests[SHARP_patches_rest$States==state_index[i]])
   tide_rests_bystate[i] <- sum(SHARP_patches_rest$tide_rests[SHARP_patches_rest$States==state_index[i]])
 }
-tide_rests_bystate_table <- cbind(state_index, as.data.frame(tide_rests_bystate))
+tide_rests_bystate_table <- cbind(state_index, as.data.frame(cbind(SALS_bystate, SALS_rests_bystate, SALS_rests_bystate/SALS_bystate, tide_rests_bystate)))
+colnames(tide_rests_bystate_table)[4] <- "Prop_SALS_rests"
 
-# create a numeric vector for SALS abundace
-SALS <- as.numeric(lossStats$SALS_abund)
-# replace missing value notation from SHARP patch layer with NAs
-SALS[SALS>=9999] <- NA
+
 # some values for observed are NaN since patches with no forest in 2000 were not removed
 # replace NaN with NAs
 observed[is.nan(observed)] <- NA
