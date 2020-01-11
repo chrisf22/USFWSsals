@@ -36,7 +36,7 @@ Q <- 10
 num_saves <- 100
 # the proportion of individuals in each state that are behind tide gates
 # when running as a single population model, make sure there is a value in position 8 as this is used for a global site, as in Field et al. 2016
-behind_gate_bystate <- c(0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3)
+behind_gate_bystate <- c( 0.027, 0.125, 0.090, 0.078, 0.073, 0.030, 0.112, 0.027)
 # the proprotion of individuals in each state that are in marshes with thin layer deposition
 prop_dep_bystate <- c(0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3)
 # the depth of thin layer deposition for each state
