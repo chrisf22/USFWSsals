@@ -93,7 +93,7 @@ SALS_noNA <- SALS
 SALS_noNA[is.na(SALS_noNA)] <- 0
 SALS_rests <- SALS_noNA*prop_rests
 # bind area of tidal restriction and SALS abundance to inform population model
-SHARP_patches_rest <- cbind(lossStats$PatchID, tide_rests, SALS, lossStats$area_ha, prop_rests, SALS_rests)
+SHARP_patches_rest <- cbind(lossStats$PatchID, tide_rests, SALS_noNA, lossStats$area_ha, prop_rests, SALS_rests)
 # turn matrix into a data frame
 SHARP_patches_rest <- as.data.frame(SHARP_patches_rest, stringsAsFactors = FALSE)
 # bind data frame with column for state
@@ -107,13 +107,12 @@ tide_rests_bystate <- mat.or.vec(length(state_index), 1)
 SALS_rests_bystate <- mat.or.vec(length(state_index), 1)
 SALS_bystate <- mat.or.vec(length(state_index), 1)
 for(i in 1:length(state_index)){
-  SALS_bystate[i] <- sum(SHARP_patches_rest$SALS[SHARP_patches_rest$States==state_index[i]])
+  SALS_bystate[i] <- sum(SHARP_patches_rest$SALS_noNA[SHARP_patches_rest$States==state_index[i]])
   SALS_rests_bystate[i] <- sum(SHARP_patches_rest$SALS_rests[SHARP_patches_rest$States==state_index[i]])
   tide_rests_bystate[i] <- sum(SHARP_patches_rest$tide_rests[SHARP_patches_rest$States==state_index[i]])
 }
 tide_rests_bystate_table <- cbind(state_index, as.data.frame(cbind(SALS_bystate, SALS_rests_bystate, SALS_rests_bystate/SALS_bystate, tide_rests_bystate)))
 colnames(tide_rests_bystate_table)[4] <- "Prop_SALS_rests"
-
 
 # some values for observed are NaN since patches with no forest in 2000 were not removed
 # replace NaN with NAs
