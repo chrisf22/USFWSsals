@@ -36,7 +36,7 @@ Q <- 10
 num_saves <- 100
 # the proportion of individuals in each state that are behind tide gates
 # when running as a single population model, make sure there is a value in position 8 as this is used for a global site, as in Field et al. 2016
-behind_gate_bystate <- c( 0.027, 0.125, 0.090, 0.078, 0.073, 0.030, 0.112, 0.027)
+behind_gate_bystate <- c( 0.078, 0.073, 0.024, 0.069, 0.030, 0.112, 0.027, 0.079)
 # the proprotion of individuals in each state that are in marshes with thin layer deposition
 prop_dep_bystate <- c(0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3)
 # the depth of thin layer deposition for each state
@@ -60,6 +60,26 @@ surv_CT <- read.csv(file = "surv_avgsite_MCMC.csv", header=TRUE, sep=",", string
 # load renesting probability; varies by date and latitude, but no individual variation beyond binomial sampling variance
 renest_prob_MCMC <- read.csv(file = "renest_prob_MCMC.csv", header=TRUE, sep=",", stringsAsFactors=FALSE, quote="")
 
+# function for Latin Hypercube Sampling for parameters drawn from posterior samples
+lhs_samp <- function(x){
+  y <- ecdf(x)
+  z <- y(x)
+  out <- sample(x[z>((q-1)*(1/Q))&z<(q*(1/Q))], 1)
+  out_pos <- which(x==out)
+  return(out_pos)
+}
+
+# function for Latin Hypercube Sampling for parameters drawn from distributions
+lhs_dist <- function(mu, sd){
+  simp_rand <- rnorm(10000, mu, sd)
+  y <- ecdf(simp_rand)
+  z <- y(simp_rand)
+  out <- sample(simp_rand[z>((q-1)*(1/Q))&z<(q*(1/Q))], 1)
+  #interval_cdf <- qnorm(c(((q-1)*(1/Q) + 0.00001), ((q*(1/Q))) - 0.00001), mu, sd)
+  #out <- runif(1, interval_cdf[1], interval_cdf[2])
+  return(out)
+}
+
 # load libraries, detect and register cores, and use the foreach command to do parallel computing for each iteration of the parameter uncertainty loop
 library('parallel')
 library('foreach')
@@ -78,7 +98,10 @@ PVA <- foreach(q = 1:Q) %dopar% {
   # pull parameter values from posteriors
   # draw values for renesting probability; varies by date and latitude, but no individual variation beyond binomial sampling variance
   # randomly select a row number, which will be used to draw a vector of parameter values from same step of the MCMC chain
-  renest_prob_row <- sample(1000, 1)
+  # using simple random sampling
+  #renest_prob_row <- sample(1000, 1)
+  # using hypercube sampling
+  renest_prob_row <- lhs_samp(renest_prob_MCMC[, 1])
   renest_prob_int <- renest_prob_MCMC[renest_prob_row, 1]
   renest_prob_date <- renest_prob_MCMC[renest_prob_row, 3]
   renest_prob_lat <- renest_prob_MCMC[renest_prob_row, 2]
@@ -86,7 +109,10 @@ PVA <- foreach(q = 1:Q) %dopar% {
   
   # draw values nest success probabilities
   # randomly select a row number, which will be used to draw a vector of parameter values from the same step of the MCMC chain
-  nest_succ_row <- sample(1000, 1)
+  # using simple random sampling
+  #nest_succ_row <- sample(1000, 1)
+  # using hypercube sampling
+  nest_succ_row <- lhs_samp(nest_succ[, 1])
   # intercept
   nest_succ_int <- nest_succ[nest_succ_row,1]
   # tide effect
@@ -98,7 +124,8 @@ PVA <- foreach(q = 1:Q) %dopar% {
   # first column is the intercept, second is the latitudinal trend, third is the within-season date trend, fourth is individual variation, fifth is seasonal variation
   B_vital <- mat.or.vec(8, 5)
   for(i in 1:8){
-    B_vital[i, 1]  <- rnorm(1, VitalRates[i, 4], VitalRates[i, 5])
+    # using simple random sampling
+    B_vital[i, 1] <- rnorm(1, VitalRates[i, 4], VitalRates[i, 5])
     B_vital[i, 2] <- rnorm(1, VitalRates[i, 6], VitalRates[i, 7])
     B_vital[i, 3] <- rnorm(1, VitalRates[i, 8], VitalRates[i, 9])
     B_vital[i, 4] <- rnorm(1, VitalRates[i, 2], VitalRates[i, 3])
@@ -106,13 +133,21 @@ PVA <- foreach(q = 1:Q) %dopar% {
   }
   
   # choose values for clutch size probabilities for 3, 4, and 5 eggs; exp is used to ensure the appropriate link function when used to project
-  clutch_size_3 <- exp(rnorm(1, 1.5976767, 0.1520553))
-  clutch_size_4 <- exp(rnorm(1, 2.1171442, 0.1467794))
-  clutch_size_5 <- exp(rnorm(1, 0.4307773, 0.1781254))
+  # for random sampling
+  #clutch_size_3 <- exp(rnorm(1, 1.5976767, 0.1520553))
+  #clutch_size_4 <- exp(rnorm(1, 2.1171442, 0.1467794))
+  #clutch_size_5 <- exp(rnorm(1, 0.4307773, 0.1781254))
+  # using hypercube sampling
+  clutch_size_3 <- exp(lhs_dist(1.5976767, 0.1520553))
+  clutch_size_4 <- exp(lhs_dist(2.1171442, 0.1467794))
+  clutch_size_5 <- exp(lhs_dist(0.4307773, 0.1781254))
   
   # draw values for adult survival
   # randomly select a row number, which will be used to pull parameter values from the same step of the MCMC chain
-  surv_bysite_row <- sample(1000, 1)
+  # using simple random sampling
+  #surv_bysite_row <- sample(1000, 1)
+  # using hypercube sampling
+  surv_bysite_row <- lhs_samp(surv_CT[ ,1])
   survival_sitevector <- surv_CT[surv_bysite_row, 1]
   survival_siteSD <- surv_CT[surv_bysite_row, 2]
   
@@ -122,11 +157,17 @@ PVA <- foreach(q = 1:Q) %dopar% {
   #SLR_Rahm <- (SLR_Rahm_all[25:110 , 3] - 10)*0.0328084
   # when using Kopp data, start at the 15th row, so that the first value is for 2014, the first year of the original script; subtract the value in 2013
   # set as RCP 8.5, 6.0, 4.5, or 2.6 (make sure both objects are specified as the correct scenario)
-  SLR_sample <- sample(10000, 1)
+  # using simple random sampling
+  #SLR_sample <- sample(10000, 1)
+  # using hypercube sampling
+  SLR_sample <- lhs_samp(SLR_Kopp_scen85[, 101])
   SLR_Kopp <- as.numeric((SLR_Kopp_scen85[SLR_sample, 15:101] - SLR_Kopp_scen85[SLR_sample, 14])*0.0328084)
   
   # draw values for storm surge parameters
-  ssindex <- sample(1000, 1)
+  # using simple random sampling
+  #ssindex <- sample(1000, 1)
+  # using hypercube sampling
+  ssindex <- lhs_samp(surge_posteriors[, 1])
   # parameter for trend over the SALS breeding season
   beta_mu <- surge_posteriors[ssindex ,3]
   # variance parameter for trend over the SALS breeding season
@@ -139,6 +180,10 @@ PVA <- foreach(q = 1:Q) %dopar% {
   sd3 <- surge_posteriors[ssindex ,8]
   # residual variance
   sd <- surge_posteriors[ ssindex,6]
+  
+  # get log(accretion) mean and standard devation from LIS studies; backtransform and convert from m to ft to be consistent with NOAA tidal constintuent data
+  #accretion <- exp(rnorm(1, -5.7208, 0.1923))*3.28084
+  accretion <- lhs_dist(4.3186, 0.6064)*0.00328084
   
   # loop for environmental and demographic stochasticity
   # currently specified to run once without management (E = 1) and once to simulate either tide gate manipulation or thin layer deposition (E = 2)
@@ -164,7 +209,7 @@ PVA <- foreach(q = 1:Q) %dopar% {
     # for a single population
     #popsize_bysite <- 1500
     # for a group of sites
-    popsize_bysite <- c(250, 250, 250, 250, 250, 250, 250)
+    popsize_bysite <- c(20715, 5773, 1594, 900, 6512, 1085, 1622)/3
     # vector of starting population sizes by site for exporting; this vector will update annually, while "popsize_bysite" will remain as the starting population sizes
     # specify only one site for a single-population model
     popsize_bysite_export <- mat.or.vec(7, 1)
@@ -187,9 +232,7 @@ PVA <- foreach(q = 1:Q) %dopar% {
     end_date <- rep(203, length(individs_bysite))
     # calculate total population size over all sites
     popsize <- length(individs_bysite)
-    # get log(accretion) mean and standard devation from LIS studies; backtransform and convert from m to ft to be consistent with NOAA tidal constintuent data
-    accretion <- exp(rnorm(1, -5.7208, 0.1923))*3.28084
-    
+
     # parameters and tide data are using a baseline of 2013, so they are indexed as (y+7) so that y = 1 is 2021; starting population size is for 2020 
     # year loop; tide projections can support a maximum of 80 years (Y)
     for(y in 1:Y){
@@ -322,12 +365,12 @@ PVA <- foreach(q = 1:Q) %dopar% {
       # for a group of sites
       allee_index <- mat.or.vec(7, 1)
       for(i in 1:7){
-        allee_index[i] <- length(which(popsize_bysite_export[i] > (3*popsize_bysite[i])))
+        allee_index[i] <- length(which(popsize_bysite_export[i] > (1.5*popsize_bysite[i])))
       }
       # specify vectors that are the length of the no. of individuals to put in nest success regression equation
       allee_index_individs <- allee_index[individs_bysite]
       # get an object for the how close the current population size is to 9 times the starting population size (as a proportion)
-      allee_prop <- (popsize_bysite_export/(9*popsize_bysite))
+      allee_prop <- (popsize_bysite_export/(3*popsize_bysite))
       
       # for a single population
       # density dependence: only kicks in when population size is 3 times starting size
@@ -356,6 +399,8 @@ PVA <- foreach(q = 1:Q) %dopar% {
       # get nest success probability by day instead of by tide
       succ_prob_day <- apply(succ_prob, MARGIN = c(2,3), FUN = prod)
       # density dependence kicks in at 3 times the starting populations size and increases gradually until its maximum at 9 times the population size
+      # -8 is the intercept at the point that density dependence kicks in; 25 is the slope
+      # (1/3) is specified so that the slope is zero when allee_prop is = 1/3; i.e (start of dens. dep.)/K
       # only one of the two versions of density dependence below should be active
       # daily nest survival with site-level density dependence
       daily_surv <- succ_prob_day - t(t(succ_prob_day)*allee_index_individs*(.5/(1+exp(-(-8 + 25*(allee_prop[individs_bysite]-(1/3)))))))
