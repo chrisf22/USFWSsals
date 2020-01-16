@@ -25,7 +25,7 @@ start_time <- proc.time()
 # specify the number of iterations for each loop
 # E is demographic and environmental stochasticity (not necessary unless specifically partitioning uncertainty)
 # currently specified to run once without management (E = 1) and once to simulate either tide gate manipulation or thin layer deposition (E = 2)
-E <- 2
+E <- 4
 # Y is the number of years
 #Y <-  80
 Y <-  50
@@ -33,7 +33,7 @@ Y <-  50
 #Q <-1000
 Q <- 10
 # number of high tides in each season with tide gate manipulation
-num_saves <- 100
+num_saves <- c(0, 5, 10, 100)
 # the proportion of individuals in each state that are behind tide gates
 # when running as a single population model, make sure there is a value in position 8 as this is used for a global site, as in Field et al. 2016
 behind_gate_bystate <- c( 0.078, 0.073, 0.024, 0.069, 0.030, 0.112, 0.027, 0.079)
@@ -192,7 +192,9 @@ PVA <- foreach(q = 1:Q) %dopar% {
     num_windows <- mat.or.vec(Y, 1)
     # when e is an even number, a certain proportion of nests behind tide gates will be saved during high tides (determined by prop_behind_gate)
     # or a certain proportion of nests will be subject to thin layer deposition (determined by prop_dep)
-    if(e %% 2 == 0){
+    #if(e %% 2 == 0){
+    # alternativley, management scenarios are run when e > 1 
+    if(e > 1){
       prop_behind_gate <- behind_gate_bystate
       prop_dep <- prop_dep_bystate
     } else{
@@ -286,7 +288,7 @@ PVA <- foreach(q = 1:Q) %dopar% {
       # order tides from highest to lowest to investigate the influence of the timing of high tides on population dynamics
       tides_ordered <- tides[order(tides, decreasing = TRUE)]
       # create an index for a gate is manipulated during that tide, determined by whether it is higher or equal to the X highest tides (X specified by num_saves)
-      save_index <- tides_byday > tides_ordered[num_saves]
+      save_index <- tides_byday > tides_ordered[num_saves[e]]
       # create an empty matrix that will index whether each tide in the season is subjected to manipulation, a "save" (1), or not (0)
       # with rows for the tides in each day and columns equal to the number of days in the season
       save_mat <- mat.or.vec(2, length(tides_byday[1,]))
