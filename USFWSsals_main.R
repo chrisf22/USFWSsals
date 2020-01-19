@@ -79,7 +79,7 @@ lhs_samp <- function(x){
   y <- ecdf(x)
   z <- y(x)
   out <- sample(x[z>((q-1)*(1/Q))&z<(q*(1/Q))], 1)
-  out_pos <- which(x==out)
+  out_pos <- which(x==out)[1]
   return(out_pos)
 }
 
@@ -109,7 +109,7 @@ registerDoParallel(cl, cores=detectCores() - 2)
 PVA <- foreach(q = 1:Q) %dopar% {
   # this for loop is for testing without using foreach
   #start_time <- proc.time()
-  #for(q in 1:1){
+  #for(q in 1:100){
   # create an empty length(site)-by-Y-by-E array to store results; length(site) = 1 for a single-population model
   popsize_matrix <- array(0, dim=c(7, Y + 1, E))
   #popsize_matrix <- array(0, dim=c(1, Y + 1, E))
@@ -180,7 +180,7 @@ PVA <- foreach(q = 1:Q) %dopar% {
   #SLR_sample <- sample(10000, 1)
   # using hypercube sampling
   SLR_sample <- lhs_samp(SLR_Kopp_scen85[, 101])
-  SLR_Kopp <- as.numeric((SLR_Kopp_scen85[SLR_sample, 15:101] - SLR_Kopp_scen85[SLR_sample, 14])*0.0328084)
+  SLR_Kopp <- as.numeric(SLR_Kopp_scen85[SLR_sample, 15:101] - SLR_Kopp_scen85[SLR_sample, 14])*0.0328084
   
   # draw values for storm surge parameters
   # using simple random sampling
@@ -222,8 +222,8 @@ PVA <- foreach(q = 1:Q) %dopar% {
     # for a single population
     #popsize_bysite <- 1500
     # for a group of sites
-    #popsize_bysite <- c(20715, 5773, 1594, 900, 6512, 1085, 1622)/3
-    popsize_bysite <- c(100, 100, 100, 100, 100, 100, 100)
+    popsize_bysite <- c(20715, 5773, 1594, 900, 6512, 1085, 1622)/3
+    #popsize_bysite <- c(10, 10, 10, 10, 10, 10, 10)
     # vector of starting population sizes by site for exporting; this vector will update annually, while "popsize_bysite" will remain as the starting population sizes
     # specify only one site for a single-population model
     popsize_bysite_export <- mat.or.vec(7, 1)
