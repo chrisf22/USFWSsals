@@ -106,10 +106,10 @@ library('doParallel')
 cl <- makeCluster(detectCores() - 2)
 registerDoParallel(cl, cores=detectCores() - 2)
 
-#PVA <- foreach(q = 1:Q) %dopar% {
+PVA <- foreach(q = 1:Q) %dopar% {
   # this for loop is for testing without using foreach
   #start_time <- proc.time()
-  for(q in 1:1){
+  #for(q in 1:1){
   # create an empty length(site)-by-Y-by-E array to store results; length(site) = 1 for a single-population model
   popsize_matrix <- array(0, dim=c(7, Y + 1, E))
   #popsize_matrix <- array(0, dim=c(1, Y + 1, E))
