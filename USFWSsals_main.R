@@ -33,6 +33,8 @@ Y <-  50
 Q <- 100
 # number of high tides in each season with tide gate manipulation
 num_saves <- c(0, 5, 10, 100, 100, 0)
+# the year of thin layer deposition
+C <- 10
 # the proportion of individuals in each state that are behind tide gates
 # when running as a single population model, make sure there is a value in position 8 as this is used for a global site, as in Field et al. 2016
 behind_gate_bystate <- rbind(c(0, 0, 0, 0, 0, 0, 0, 0), 
@@ -55,6 +57,8 @@ thin_layer_bystate <- rbind(c(0, 0, 0, 0, 0, 0, 0, 0),
                             c(0, 0, 0, 0, 0, 0, 0, 0),
                             c(0, 0, 0, 0, 0, 0, 0, 0),
                             c(0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01))
+thin_layer_year <- rep(0, Y)
+thin_layer_year[C:Y] <- 1
 # latitudes of a major marsh complex in each state to use as a covariate for determining values for reproductive parameters
 state_lats <- c(39.53554518, 40.59975147, 41.26211791, 41.48726854, 42.77556486, 43.07542386, 43.56329844)
 
@@ -96,7 +100,7 @@ lhs_dist <- function(mu, sd){
 
 # function for applying the elevation adjustment for thin layer deposition
 thin_layer_adj <- function(xx){
-  nest_succ_logit[, , xx] - nest_succ_tide*thin_layer_bystate[individs_bysite][xx]*dep_state[xx]
+  nest_succ_logit[, , xx] - nest_succ_tide*thin_layer[individs_bysite][xx]*dep_state[xx]
 }
 
 # load libraries, detect and register cores, and use the foreach command to do parallel computing for each iteration of the parameter uncertainty loop
@@ -213,6 +217,7 @@ PVA <- foreach(q = 1:Q) %dopar% {
     # proportion of nests will be subject to thin layer deposition
     prop_behind_gate <- behind_gate_bystate[e,]
     prop_dep <- prop_dep_bystate[e,]
+    thin_layer <- thin_layer_bystate[e,]
     # create a vector of site indices
     # use just one site when simulating a single-population model (use 8 for Long Island Sound, since that sets it in the middle of the CT coastline when referenced by SHARP sites)
     #sites <- 8:8
@@ -315,7 +320,7 @@ PVA <- foreach(q = 1:Q) %dopar% {
       save_index_byind[, , behind_gate==1] <- save_mat
       
       # create an index for which individuals are at sites with thin-layer deposition
-      dep_state <- rbinom(length(new_lat), 1, prop_dep[individs_bysite])
+      dep_state <- rbinom(length(new_lat), 1, prop_dep[individs_bysite])*thin_layer_year[y]
       
       # calculate the number of windows without a reproduction-stopping tide (one that would cause greater than 95% failure) 
       threshold_index[threshold_index >1] <- 1
