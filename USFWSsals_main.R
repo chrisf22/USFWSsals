@@ -24,17 +24,19 @@ start_time <- proc.time()
 # specify the number of iterations for each loop
 # E is demographic and environmental stochasticity (not necessary unless specifically partitioning uncertainty)
 # currently specified to run once without management (E = 1) and once to simulate either tide gate manipulation or thin layer deposition (E = 2)
-E <- 5
+E <- 7
 # Y is the number of years
 #Y <-  80
-Y <-  50
+Y <-  10
 # Q is the number of iterations for estimating uncertainty from parameter estimation
 #Q <-1000
 Q <- 100
 # number of high tides in each season with tide gate manipulation
-num_saves <- c(0, 5, 10, 100, 100, 0)
-# the year of thin layer deposition
+num_saves <- c(0, 5, 10, 100, 100, 0, 0)
+# the year of thin layer deposition + recovery time
 C <- 10
+# the year of forest management and ecosystem transition time
+migration <- 10
 # the proportion of individuals in each state that are behind tide gates
 # when running as a single population model, make sure there is a value in position 8 as this is used for a global site, as in Field et al. 2016
 behind_gate_bystate <- rbind(c(0, 0, 0, 0, 0, 0, 0, 0), 
@@ -42,9 +44,19 @@ behind_gate_bystate <- rbind(c(0, 0, 0, 0, 0, 0, 0, 0),
                              c( 0.078, 0.073, 0.024, 0.069, 0.030, 0.112, 0.027, 0.079),
                              c( 0.078, 0.073, 0.024, 0.069, 0.030, 0.112, 0.027, 0.079),
                              c( 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3),
+                             c(0, 0, 0, 0, 0, 0, 0, 0),
                              c(0, 0, 0, 0, 0, 0, 0, 0))
 # the proprotion of individuals in each state that are in marshes with thin layer deposition
 prop_dep_bystate <- rbind(c(0, 0, 0, 0, 0, 0, 0, 0),
+                          c(0, 0, 0, 0, 0, 0, 0, 0),
+                          c(0, 0, 0, 0, 0, 0, 0, 0),
+                          c(0, 0, 0, 0, 0, 0, 0, 0),
+                          c(0, 0, 0, 0, 0, 0, 0, 0),
+                          c(0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3),
+                          c(0, 0, 0, 0, 0, 0, 0, 0))
+# the proportion of individuals in each state that are in marsh migration areas
+prop_mig_bystate <- rbind(c(0, 0, 0, 0, 0, 0, 0, 0),
+                          c(0, 0, 0, 0, 0, 0, 0, 0),
                           c(0, 0, 0, 0, 0, 0, 0, 0),
                           c(0, 0, 0, 0, 0, 0, 0, 0),
                           c(0, 0, 0, 0, 0, 0, 0, 0),
@@ -56,7 +68,8 @@ thin_layer_bystate <- rbind(c(0, 0, 0, 0, 0, 0, 0, 0),
                             c(0, 0, 0, 0, 0, 0, 0, 0),
                             c(0, 0, 0, 0, 0, 0, 0, 0),
                             c(0, 0, 0, 0, 0, 0, 0, 0),
-                            c(0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01))
+                            c(0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01),
+                            c(0, 0, 0, 0, 0, 0, 0, 0))
 thin_layer_year <- rep(0, Y)
 thin_layer_year[C:Y] <- 1
 # latitudes of a major marsh complex in each state to use as a covariate for determining values for reproductive parameters
@@ -100,7 +113,12 @@ lhs_dist <- function(mu, sd){
 
 # function for applying the elevation adjustment for thin layer deposition
 thin_layer_adj <- function(xx){
-  nest_succ_logit[, , xx] - nest_succ_tide*thin_layer[individs_bysite][xx]*dep_state[xx]
+  nest_succ_logit[, , xx] - nest_succ_tide*thin_layer[individs_bysite][xx]*dep_ind[xx]
+}
+
+# function for applying the elevation adjustment for marsh migration areas
+migration_adj <- function(xx){
+  nest_succ_logit[, , xx] - nest_succ_tide*SLR_Kopp[(migration+7)]*mig_ind[xx]
 }
 
 # load libraries, detect and register cores, and use the foreach command to do parallel computing for each iteration of the parameter uncertainty loop
@@ -206,17 +224,19 @@ PVA <- foreach(q = 1:Q) %dopar% {
   
   # get log(accretion) mean and standard devation from LIS studies; backtransform and convert from m to ft to be consistent with NOAA tidal constintuent data
   #accretion <- exp(rnorm(1, -5.7208, 0.1923))*3.28084
-  accretion <- lhs_dist(4.3186, 0.6064)*0.00328084
+  accretion <- lhs_dist(4.3186, 0.6064)*0.00328084 
   
   # loop for environmental and demographic stochasticity
   # currently specified to run once without management (E = 1) and once to simulate either tide gate manipulation or thin layer deposition (E > 1)
   for(e in 1:E){
     # create a matrix for tracking the number of suitable breeding windows in each year
     num_windows <- mat.or.vec(Y, 1)
-    # specify which management scenario should be used for the proportion of nests behind tide gates will be saved during high tides and
-    # proportion of nests will be subject to thin layer deposition
+    # specify which management scenario should be used for the proportion of nests behind tide gates will be saved during high tides,
+    # proportion of nests will be subject to thin layer deposition, and
+    # the proportion of nests that will be in marsh migration areas
     prop_behind_gate <- behind_gate_bystate[e,]
     prop_dep <- prop_dep_bystate[e,]
+    prop_mig <- prop_mig_bystate[e,]
     thin_layer <- thin_layer_bystate[e,]
     # create a vector of site indices
     # use just one site when simulating a single-population model (use 8 for Long Island Sound, since that sets it in the middle of the CT coastline when referenced by SHARP sites)
@@ -320,7 +340,8 @@ PVA <- foreach(q = 1:Q) %dopar% {
       save_index_byind[, , behind_gate==1] <- save_mat
       
       # create an index for which individuals are at sites with thin-layer deposition
-      dep_state <- rbinom(length(new_lat), 1, prop_dep[individs_bysite])*thin_layer_year[y]
+      dep_ind <- rbinom(length(new_lat), 1, prop_dep[individs_bysite])*thin_layer_year[y]
+      mig_ind <- rbinom(length(new_lat), 1, prop_mig[individs_bysite]) 
       
       # calculate the number of windows without a reproduction-stopping tide (one that would cause greater than 95% failure) 
       threshold_index[threshold_index >1] <- 1
@@ -408,9 +429,10 @@ PVA <- foreach(q = 1:Q) %dopar% {
       # the following 5 lines should be activated to increase nest success probability by the effect of thin layer deposition
       xx <- 1:length(individs_bysite)
       #thin_layer_adj <- function(xx){
-      #  nest_succ_logit[, , xx] - nest_succ_tide*thin_layer_bystate[individs_bysite][xx]*dep_state[xx]
+      #  nest_succ_logit[, , xx] - nest_succ_tide*thin_layer_bystate[individs_bysite][xx]*dep_ind[xx]
       #}
       nest_succ_logit <- sapply(xx, FUN=thin_layer_adj, simplify="array")
+      nest_succ_logit <- sapply(xx, FUN=migration_adj, simplify="array")
       # backtransform nest success probabilities 
       succ_prob <- exp(nest_succ_logit)/(1+exp(nest_succ_logit))
       # adjust nest success probabilities so that survival probability = 1 for tides with saves
