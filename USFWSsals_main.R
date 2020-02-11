@@ -24,19 +24,19 @@ start_time <- proc.time()
 # specify the number of iterations for each loop
 # E is demographic and environmental stochasticity (not necessary unless specifically partitioning uncertainty)
 # currently specified to run once without management (E = 1) and once to simulate either tide gate manipulation or thin layer deposition (E = 2)
-E <- 7
+E <- 10
 # Y is the number of years
 #Y <-  80
-Y <-  10
+Y <-  50
 # Q is the number of iterations for estimating uncertainty from parameter estimation
 #Q <-1000
 Q <- 100
 # number of high tides in each season with tide gate manipulation
-num_saves <- c(0, 5, 10, 100, 100, 0, 0)
-# the year of thin layer deposition + recovery time
-C <- 10
+num_saves <- c(0, 5, 10, 100, 100, 0, 0, 0, 0)
 # the year of forest management and ecosystem transition time
 migration <- 10
+# whether or not an emissions reduction scenario is being considered
+SLR_scen <- c(0, 0, 0, 0, 0, 0, 0, 0, 1)
 # the proportion of individuals in each state that are behind tide gates
 # when running as a single population model, make sure there is a value in position 8 as this is used for a global site, as in Field et al. 2016
 behind_gate_bystate <- rbind(c(0, 0, 0, 0, 0, 0, 0, 0), 
@@ -45,6 +45,9 @@ behind_gate_bystate <- rbind(c(0, 0, 0, 0, 0, 0, 0, 0),
                              c( 0.078, 0.073, 0.024, 0.069, 0.030, 0.112, 0.027, 0.079),
                              c( 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3),
                              c(0, 0, 0, 0, 0, 0, 0, 0),
+                             c(0, 0, 0, 0, 0, 0, 0, 0),
+                             c(0, 0, 0, 0, 0, 0, 0, 0),
+                             c(0, 0, 0, 0, 0, 0, 0, 0),
                              c(0, 0, 0, 0, 0, 0, 0, 0))
 # the proprotion of individuals in each state that are in marshes with thin layer deposition
 prop_dep_bystate <- rbind(c(0, 0, 0, 0, 0, 0, 0, 0),
@@ -52,7 +55,10 @@ prop_dep_bystate <- rbind(c(0, 0, 0, 0, 0, 0, 0, 0),
                           c(0, 0, 0, 0, 0, 0, 0, 0),
                           c(0, 0, 0, 0, 0, 0, 0, 0),
                           c(0, 0, 0, 0, 0, 0, 0, 0),
+                          c(0.33, 0.33, 0.33, 0.33, 0.33, 0.33, 0.33, 0.33),
+                          c(0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1),
                           c(0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3),
+                          c(0, 0, 0, 0, 0, 0, 0, 0),
                           c(0, 0, 0, 0, 0, 0, 0, 0))
 # the proportion of individuals in each state that are in marsh migration areas
 prop_mig_bystate <- rbind(c(0, 0, 0, 0, 0, 0, 0, 0),
@@ -61,17 +67,27 @@ prop_mig_bystate <- rbind(c(0, 0, 0, 0, 0, 0, 0, 0),
                           c(0, 0, 0, 0, 0, 0, 0, 0),
                           c(0, 0, 0, 0, 0, 0, 0, 0),
                           c(0, 0, 0, 0, 0, 0, 0, 0),
-                          c(0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3))
+                          c(0, 0, 0, 0, 0, 0, 0, 0),
+                          c(0, 0, 0, 0, 0, 0, 0, 0),
+                          c(0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3),
+                          c(0, 0, 0, 0, 0, 0, 0, 0))
 # the depth of thin layer deposition for each state
 thin_layer_bystate <- rbind(c(0, 0, 0, 0, 0, 0, 0, 0),
                             c(0, 0, 0, 0, 0, 0, 0, 0),
                             c(0, 0, 0, 0, 0, 0, 0, 0),
                             c(0, 0, 0, 0, 0, 0, 0, 0),
                             c(0, 0, 0, 0, 0, 0, 0, 0),
-                            c(0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01),
+                            c(0.0656, 0.0656, 0.0656, 0.0656, 0.0656, 0.0656, 0.0656, 0.0656),
+                            c(0.0656, 0.0656, 0.0656, 0.0656, 0.0656, 0.0656, 0.0656, 0.0656),
+                            c(0.0656, 0.0656, 0.0656, 0.0656, 0.0656, 0.0656, 0.0656, 0.0656),
+                            c(0, 0, 0, 0, 0, 0, 0, 0),
                             c(0, 0, 0, 0, 0, 0, 0, 0))
-thin_layer_year <- rep(0, Y)
-thin_layer_year[C:Y] <- 1
+# the year of thin layer deposition + recovery time
+C <- c(10, 20)
+#thin_layer_year <- rep(0, Y)
+thin_layer_year <- matrix(0, 9, Y)
+thin_layer_year[6, C[1]:Y] <- 1
+thin_layer_year[7, C[2]:Y] <- 1
 # latitudes of a major marsh complex in each state to use as a covariate for determining values for reproductive parameters
 state_lats <- c(39.53554518, 40.59975147, 41.26211791, 41.48726854, 42.77556486, 43.07542386, 43.56329844)
 
@@ -203,6 +219,7 @@ PVA <- foreach(q = 1:Q) %dopar% {
   # using hypercube sampling
   SLR_sample <- lhs_samp(SLR_Kopp_scen85[, 101])
   SLR_Kopp <- as.numeric(SLR_Kopp_scen85[SLR_sample, 15:101] - SLR_Kopp_scen85[SLR_sample, 14])*0.0328084
+  SLR_Kopp26 <- as.numeric(SLR_Kopp_scen26[SLR_sample, 15:101] - SLR_Kopp_scen26[SLR_sample, 14])*0.0328084
   
   # draw values for storm surge parameters
   # using simple random sampling
@@ -322,6 +339,9 @@ PVA <- foreach(q = 1:Q) %dopar% {
         threshold_index[i-120] <- length(which(tides_byday[ , i-120] > 3.45))
       }
       
+      # for an emissions reduction scenario, subtract the difference between the primary and reduced emissions scenarios
+      tides_byday <- tides_byday - (SLR_Kopp[(y+7)] - SLR_Kopp26[(y+7)])*SLR_scen[e]
+      
       # order tides from highest to lowest to investigate the influence of the timing of high tides on population dynamics
       tides_ordered <- tides[order(tides, decreasing = TRUE)]
       # create an index for a gate is manipulated during that tide, determined by whether it is higher or equal to the X highest tides (X specified by num_saves)
@@ -340,7 +360,7 @@ PVA <- foreach(q = 1:Q) %dopar% {
       save_index_byind[, , behind_gate==1] <- save_mat
       
       # create an index for which individuals are at sites with thin-layer deposition
-      dep_ind <- rbinom(length(new_lat), 1, prop_dep[individs_bysite])*thin_layer_year[y]
+      dep_ind <- rbinom(length(new_lat), 1, prop_dep[individs_bysite])*thin_layer_year[e, y]
       mig_ind <- rbinom(length(new_lat), 1, prop_mig[individs_bysite]) 
       
       # calculate the number of windows without a reproduction-stopping tide (one that would cause greater than 95% failure) 
