@@ -145,6 +145,9 @@ state_num[state_num=='ME'] <- 10
 SHARP_patches_4plot <- cbind(SHARP_patches_4plot, as.numeric(state_num))
 # specify column name for numeric state index
 colnames(SHARP_patches_4plot)[10] <- "state_num"
+# add area has a column
+SHARP_patches_4plot <- cbind(SHARP_patches_4plot, lossStats$area_ha)
+colnames(SHARP_patches_4plot)[11] <- "area_ha"
 # order the data frame by the state numeric index, from south the north
 SHARP_patches_4plot <- SHARP_patches_4plot[order(SHARP_patches_4plot$state_num), ]
 # specify factors for alpha state index from south the north
@@ -152,6 +155,39 @@ SHARP_patches_4plot$States <- factor(SHARP_patches_4plot$States, levels = c("VA"
 
 # export forest stats to be merged with SHARP patch layer .shp in QGIS
 write.csv(SHARP_patches_att, "/users/chrisfield/Desktop/USFWSsals_foreststats.csv")
+
+### find the minimum area of current marsh that will be managed to affect X% of the saltmarsh sparrow population
+
+# create a vector of unique state names to cycle through
+state_names <- levels(SHARP_patches_4plot$States)
+num_marshes <- mat.or.vec(length(state_names), 2)
+marsh_area <- mat.or.vec(length(state_names), 2)
+# creating a table for the two management goals used in the pop. simulation (33% and 10% of the population)
+sals_prop <- c(0.3333, 0.1)
+for(e in 1:2){
+for(i in 1:length(state_names)){
+  # create a temporary file for state i
+  temp <- SHARP_patches_4plot[SHARP_patches_4plot$States==state_names[i],]  
+  # order temporary object by decreasing SALS abundance
+  temp2 <- temp[order(temp$SALS, decreasing=TRUE), ]
+  # calculate the total SALS population size for state i
+  SALS_total <- sum(temp2$SALS, na.rm=TRUE)
+  # find the cumulative sum of the SALS population size, from the object that is ordered highest to lowest SALS abundance
+  sum_SALS <- cumsum(temp2$SALS)
+  # find the cumulative sum of marsh area, as above
+  sum_marsh <- cumsum(temp2$area_ha)
+  # find the number of marshes it takes to meet the management goal e
+  num_marshes[i, e] <- min(which(sum_SALS>=SALS_total*sals_prop[e]))
+  # find the total area of the marshes identified above
+  marsh_area[i, e] <- sum_marsh[num_marshes[i, e]]
+}
+}
+
+pop_to_marsh_conv <- cbind(num_marshes, marsh_area)
+colnames(pop_to_marsh_conv) <- c("Number of marshes (33% of pop.)", "Number of marshes (10% of pop.)", "Area of marsh (33% of pop.)", "Area of marsh (10% of pop.)")
+
+write.csv(pop_to_marsh_conv, "/users/chrisfield/Desktop/USFWSsals_poptomarsh.csv")
+
 
 ###
 
