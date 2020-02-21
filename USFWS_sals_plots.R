@@ -1,15 +1,15 @@
 #load("/Users/chrisfield/Desktop/A1F1_1k_ordered.Rdata")
 
-popsizes <- array(data = NA, c(Q, Y, 9))
-pop_mean <- mat.or.vec(Y, 9)
-pop_lower <- mat.or.vec(Y, 9)
-pop_upper <- mat.or.vec(Y, 9)
-PVA_EX <- mat.or.vec(Y, 9)
-extinct = mat.or.vec(Q, 9)
-geo_means = mat.or.vec(Q, 9)
-extinct_manage = mat.or.vec(Q, 9)
+popsizes <- array(data = NA, c(Q, Y, 10))
+pop_mean <- mat.or.vec(Y, 10)
+pop_lower <- mat.or.vec(Y, 10)
+pop_upper <- mat.or.vec(Y, 10)
+PVA_EX <- mat.or.vec(Y, 10)
+extinct = mat.or.vec(Q, 10)
+geo_means = mat.or.vec(Q, 10)
+extinct_manage = mat.or.vec(Q, 10)
 
-for(z in 1:9){
+for(z in 1:10){
 for(q in 1:Q){
   popsizes[q, ,z] <- colSums(PVA[[q]][,1:Y,z])
 }
@@ -78,23 +78,24 @@ quartz.options(width=4.4, height=3)
 #quartz.options(width=4.33, height=4.5)
 layout(matrix(c(1, 2), 1, 2, byrow = TRUE))
 
-delta_ex <- mat.or.vec(Q, 9)
-for(i in 1:9){
+delta_ex <- mat.or.vec(Q, 10)
+for(i in 1:10){
 delta_ex[, i] <- extinct[,i] - extinct[,1]
 quantile(delta_ex, c(.025, 0.975))
 mean(delta_ex)
 }
 
-delta_geo <- mat.or.vec(Q, 9)
-for(i in 1:9){
+delta_geo <- mat.or.vec(Q, 10)
+for(i in 1:10){
   delta_geo[, i] <- geo_means[,i] - geo_means[,1]
   quantile(delta_geo, c(.025, 0.975))
   mean(delta_geo)
 }
 
 par(mar=c(3.5, 2, 1, 0))
-plot(pop_mean, ylim=c(0.5,8.5), xlim=c(-10, 20), type="l", lwd=1.7, yaxt="n", ylab=" ", xlab=" ", col=rgb(0, 0, 0, 0), bty="n", xaxt="n")
+plot(pop_mean, ylim=c(-1.5,8.5), xlim=c(-10, 20), type="l", lwd=1.7, yaxt="n", ylab=" ", xlab=" ", col=rgb(0, 0, 0, 0), bty="n", xaxt="n")
 abline(v=0)
+segments(quantile(delta_ex[,10], c(.025)), 0, quantile(delta_ex[,10], c(0.975)), 0, lend="butt", lwd=7, col="chocolate1")
 segments(quantile(delta_ex[,9], c(.025)), 1, quantile(delta_ex[,9], c(0.975)), 1, lend="butt", lwd=7, col="chocolate1")
 segments(quantile(delta_ex[,8], c(.025)), 2, quantile(delta_ex[,8], c(0.975)), 2, lend="butt", lwd=7, col="firebrick2")
 segments(quantile(delta_ex[,7], c(.025)), 3, quantile(delta_ex[,7], c(0.975)), 3, lend="butt", lwd=7, col="cadet blue")
@@ -103,6 +104,7 @@ segments(quantile(delta_ex[,2], c(.025)), 8, quantile(delta_ex[,2], c(0.975)), 8
 segments(quantile(delta_ex[,3], c(.025)), 7, quantile(delta_ex[,3], c(0.975)), 7, lend="butt", lwd=7)
 segments(quantile(delta_ex[,4], c(.025)), 6, quantile(delta_ex[,4], c(0.975)), 6, lend="butt", lwd=7)
 segments(quantile(delta_ex[,5], c(.025)), 5, quantile(delta_ex[,5], c(0.975)), 5, lend="butt", lwd=7)
+points(mean(delta_ex[,10]), 0, pch=16, col="white")
 points(mean(delta_ex[,9]), 1, pch=16, col="white")
 points(mean(delta_ex[,8]), 2, pch=16, col="white")
 points(mean(delta_ex[,7]), 3, pch=16, col="white")
@@ -116,8 +118,9 @@ axis(side=1, cex.axis=0.75, at=c(-10, 0, 10, 20), mgp=c(3, 0.75, 0))
 mtext(side=1, line=1.5, "Extinction delay (years)", cex=0.7)
 
 par(mar=c(3.5, 1, 1, 1))
-plot(pop_mean, ylim=c(0.5,8.5), xlim=c(-0.15, 0.3), type="l", lwd=1.7, yaxt="n", ylab=" ", xlab=" ", col=rgb(0, 0, 0, 0), bty="n", xaxt="n")
+plot(pop_mean, ylim=c(-1.5,8.5), xlim=c(-0.15, 0.3), type="l", lwd=1.7, yaxt="n", ylab=" ", xlab=" ", col=rgb(0, 0, 0, 0), bty="n", xaxt="n")
 abline(v=0)
+segments(quantile(delta_geo[,10], c(.025)), 0, quantile(delta_geo[,10], c(0.975)), 0, lend="butt", lwd=7, col="chocolate1")
 segments(quantile(delta_geo[,9], c(.025)), 1, quantile(delta_geo[,9], c(0.975)), 1, lend="butt", lwd=7, col="chocolate1")
 segments(quantile(delta_geo[,8], c(.025)), 2, quantile(delta_geo[,8], c(0.975)), 2, lend="butt", lwd=7, col="firebrick2")
 segments(quantile(delta_geo[,7], c(.025)), 3, quantile(delta_geo[,7], c(0.975)), 3, lend="butt", lwd=7, col="cadet blue")
@@ -126,6 +129,7 @@ segments(quantile(delta_geo[,2], c(.025)), 8, quantile(delta_geo[,2], c(0.975)),
 segments(quantile(delta_geo[,3], c(.025)), 7, quantile(delta_geo[,3], c(0.975)), 7, lend="butt", lwd=7)
 segments(quantile(delta_geo[,4], c(.025)), 6, quantile(delta_geo[,4], c(0.975)), 6, lend="butt", lwd=7)
 segments(quantile(delta_geo[,5], c(.025)), 5, quantile(delta_geo[,5], c(0.975)), 5, lend="butt", lwd=7)
+points(mean(delta_geo[,10]), 0, pch=16, col="white")
 points(mean(delta_geo[,9]), 1, pch=16, col="white")
 points(mean(delta_geo[,8]), 2, pch=16, col="white")
 points(mean(delta_geo[,7]), 3, pch=16, col="white")
