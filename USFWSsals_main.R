@@ -32,11 +32,11 @@ Y <-  50
 #Q <-1000
 Q <- 100
 # number of high tides in each season with tide gate manipulation
-num_saves <- c(0, 5, 10, 100, 100, 0, 0, 0, 0)
+num_saves <- c(0, 5, 10, 100, 100, 0, 0, 0, 0, 0, 0, 0)
 # the year of forest management and ecosystem transition time
-migration <- 10
+migration <- c(0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 20, 0)
 # whether or not an emissions reduction scenario is being considered
-SLR_scen <- c(0, 0, 0, 0, 0, 0, 0, 0, 1)
+SLR_scen <- c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1)
 # the proportion of individuals in each state that are behind tide gates
 # when running as a single population model, make sure there is a value in position 8 as this is used for a global site, as in Field et al. 2016
 behind_gate_bystate <- rbind(c(0, 0, 0, 0, 0, 0, 0, 0), 
@@ -44,6 +44,8 @@ behind_gate_bystate <- rbind(c(0, 0, 0, 0, 0, 0, 0, 0),
                              c( 0.078, 0.073, 0.024, 0.069, 0.030, 0.112, 0.027, 0.079),
                              c( 0.078, 0.073, 0.024, 0.069, 0.030, 0.112, 0.027, 0.079),
                              c( 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3),
+                             c(0, 0, 0, 0, 0, 0, 0, 0),
+                             c(0, 0, 0, 0, 0, 0, 0, 0),
                              c(0, 0, 0, 0, 0, 0, 0, 0),
                              c(0, 0, 0, 0, 0, 0, 0, 0),
                              c(0, 0, 0, 0, 0, 0, 0, 0),
@@ -58,6 +60,8 @@ prop_dep_bystate <- rbind(c(0, 0, 0, 0, 0, 0, 0, 0),
                           c(0.33, 0.33, 0.33, 0.33, 0.33, 0.33, 0.33, 0.33),
                           c(0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1),
                           c(0.33, 0.33, 0.33, 0.33, 0.33, 0.33, 0.33, 0.33),
+                          c(0.33, 0.33, 0.33, 0.33, 0.33, 0.33, 0.33, 0.33),
+                          c(0, 0, 0, 0, 0, 0, 0, 0),
                           c(0, 0, 0, 0, 0, 0, 0, 0),
                           c(0, 0, 0, 0, 0, 0, 0, 0))
 # the proportion of individuals in each state that are in marsh migration areas
@@ -69,6 +73,8 @@ prop_mig_bystate <- rbind(c(0, 0, 0, 0, 0, 0, 0, 0),
                           c(0, 0, 0, 0, 0, 0, 0, 0),
                           c(0, 0, 0, 0, 0, 0, 0, 0),
                           c(0, 0, 0, 0, 0, 0, 0, 0),
+                          c(0, 0, 0, 0, 0, 0, 0, 0),
+                          c(0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3),
                           c(0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3),
                           c(0, 0, 0, 0, 0, 0, 0, 0))
 # the depth of thin layer deposition for each state
@@ -80,14 +86,18 @@ thin_layer_bystate <- rbind(c(0, 0, 0, 0, 0, 0, 0, 0),
                             c(0.416667, 0.416667, 0.416667, 0.416667, 0.416667, 0.416667, 0.416667, 0.416667),
                             c(0.833333, 0.833333, 0.833333, 0.833333, 0.833333, 0.833333, 0.833333, 0.833333),
                             c(0.833333, 0.833333, 0.833333, 0.833333, 0.833333, 0.833333, 0.833333, 0.833333),
+                            c(0.833333, 0.833333, 0.833333, 0.833333, 0.833333, 0.833333, 0.833333, 0.833333),
+                            c(0, 0, 0, 0, 0, 0, 0, 0),
                             c(0, 0, 0, 0, 0, 0, 0, 0),
                             c(0, 0, 0, 0, 0, 0, 0, 0))
 # the year of thin layer deposition + recovery time
-C <- c(10, 20)
+C <- c(10, 20, 10, 20)
 #thin_layer_year <- rep(0, Y)
-thin_layer_year <- matrix(0, 9, Y)
+thin_layer_year <- matrix(0, 12, Y)
 thin_layer_year[6, C[1]:Y] <- 1
 thin_layer_year[7, C[2]:Y] <- 1
+thin_layer_year[8, C[3]:Y] <- 1
+thin_layer_year[9, C[4]:Y] <- 1
 # latitudes of a major marsh complex in each state to use as a covariate for determining values for reproductive parameters
 state_lats <- c(39.53554518, 40.59975147, 41.26211791, 41.48726854, 42.77556486, 43.07542386, 43.56329844)
 
@@ -134,7 +144,7 @@ thin_layer_adj <- function(xx){
 
 # function for applying the elevation adjustment for marsh migration areas
 migration_adj <- function(xx){
-  nest_succ_logit[, , xx] - nest_succ_tide*SLR_Kopp[(migration+7)]*mig_ind[xx]
+  nest_succ_logit[, , xx] - nest_succ_tide*SLR_Kopp[(migration[e]+7)]*mig_ind[xx]
 }
 
 # load libraries, detect and register cores, and use the foreach command to do parallel computing for each iteration of the parameter uncertainty loop
