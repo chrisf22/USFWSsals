@@ -156,7 +156,7 @@ SHARP_patches_4plot$States <- factor(SHARP_patches_4plot$States, levels = c("VA"
 # export forest stats to be merged with SHARP patch layer .shp in QGIS
 write.csv(SHARP_patches_att, "/users/chrisfield/Desktop/USFWSsals_foreststats.csv")
 
-### find the minimum area of current marsh that will be managed to affect X% of the saltmarsh sparrow population
+### find the minimum area of current marsh that will need to be managed to affect X% of the saltmarsh sparrow population
 
 # create a vector of unique state names to cycle through
 state_names <- levels(SHARP_patches_4plot$States)
