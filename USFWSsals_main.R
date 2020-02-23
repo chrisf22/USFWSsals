@@ -24,7 +24,7 @@ start_time <- proc.time()
 # specify the number of iterations for each loop
 # E is demographic and environmental stochasticity (not necessary unless specifically partitioning uncertainty)
 # currently specified to run once without management (E = 1) and once to simulate either tide gate manipulation or thin layer deposition (E = 2)
-E <- 10
+E <- 12
 # Y is the number of years
 #Y <-  80
 Y <-  50
