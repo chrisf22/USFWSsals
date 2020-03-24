@@ -33,12 +33,6 @@ ui <- fluidPage(
                          "NH" = "10",
                          "ME" = "11")
            )),
-    #column(1,
-           #selectInput(inputId = "ytest", 
-                       #label = "Indicator to display on Y-axis", 
-                       #choices = c("Forest loss" = "1", 
-                                   #"Saltmarsh Sparrow abundance" = "2"), 
-                       #selected = "Forest_loss")),
     column(5,
            plotOutput("plot2", click = "plot2_click", height = "600px"),
            helpText("Click on a point to see its location in the map window. Data for the mapped location is shown below the window. The threshold slider highights, for the x and y variables, the greatest or lowest X% of the locations. ")
@@ -51,7 +45,7 @@ ui <- fluidPage(
 
 server <- function(input, output, session) {
   
-  #load("SHARP_patches_wforest.RData")
+  load("SHARP_patches_wforest.RData")
   # to avoid warnings, make all zeros in SHARP_patches_4plot = NA
   SHARP_patches_4plot[SHARP_patches_4plot == 0] <- NA
   # 'SHARP_patches_4plot' must be in workspace
