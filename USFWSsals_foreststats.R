@@ -118,14 +118,16 @@ colnames(tide_rests_bystate_table)[4] <- "Prop_SALS_rests"
 # replace NaN with NAs
 observed[is.nan(observed)] <- NA
 # create a matrix with SHARP patch ID, forest loss and cover, slope, and SALS abundance
-SHARP_patches_4plot <- cbind(lossStats$PatchID, loss_ha, cover_ha, observed, slope, SALS, lat, long)
+SHARP_patches_4plot <- cbind(lossStats$PatchID, loss_ha, cover_ha, observed, slope, SALS, lat, long, lossStats$noaa_slt, SHARP_patches_rest$prop_rests)
 # turn matrix into a data frame
 SHARP_patches_4plot <- as.data.frame(SHARP_patches_4plot, stringsAsFactors = FALSE)
 # bind data frame with column for state
 SHARP_patches_4plot <- cbind(SHARP_patches_4plot, lossStats$STATE)
 # specify names for columns without
 colnames(SHARP_patches_4plot)[1] <- "PatchID"
-colnames(SHARP_patches_4plot)[9] <- "States"
+colnames(SHARP_patches_4plot)[9] <- "SLR"
+colnames(SHARP_patches_4plot)[10] <- "Prop_restricted"
+colnames(SHARP_patches_4plot)[11] <- "States"
 # two strategies for getting the legends in 'plotly' in geographic rather than alphabetical order
 # first created a sortable index for state; second treat state as a factor and specify the proper factor order
 # create a character vector for state
@@ -144,10 +146,10 @@ state_num[state_num=='ME'] <- 10
 # bind numeric state index to data frame
 SHARP_patches_4plot <- cbind(SHARP_patches_4plot, as.numeric(state_num))
 # specify column name for numeric state index
-colnames(SHARP_patches_4plot)[10] <- "state_num"
+colnames(SHARP_patches_4plot)[12] <- "state_num"
 # add area has a column
 SHARP_patches_4plot <- cbind(SHARP_patches_4plot, lossStats$area_ha)
-colnames(SHARP_patches_4plot)[11] <- "area_ha"
+colnames(SHARP_patches_4plot)[13] <- "area_ha"
 # order the data frame by the state numeric index, from south the north
 SHARP_patches_4plot <- SHARP_patches_4plot[order(SHARP_patches_4plot$state_num), ]
 # specify factors for alpha state index from south the north
