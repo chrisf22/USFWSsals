@@ -289,3 +289,85 @@ p3 <- SHARP_patches_4plot%>%group_by(States)%>%plot_ly(x = ~SALS, y = ~slope, te
 subplot(p1, p2, p3, titleY = TRUE, titleX = TRUE, margin = 0.05)
 
 
+###plots for comparing "high priority" sites by latitide###
+
+setwd("/Users/chrisfield/Dropbox/USFWScontract/GIS/")
+
+flagged_sites <- read.csv(file ="USFWSsals_foreststats_bySHARPpatch_wflags.csv", header=TRUE, sep=",", stringsAsFactors=FALSE)
+
+lat <- flagged_sites$LAT
+lat[lat==0] <- NA
+
+statenum4plot <- flagged_sites$STATE
+state4plot <- c("VA", "MD", "DE", "NJ", "NY", "CT", "RI", "MA", "NH", "ME")
+for(i in 1:length(state4plot)){
+  statenum4plot[statenum4plot == state4plot[i]] <- i
+}
+statenum4plot <- as.numeric(statenum4plot)
+statenum4plot <- statenum4plot[order(statenum4plot, lat)]
+#statenum4plot <- statenum4plot[order(flagged_sites$LAT)]
+
+
+
+quartz.options(width=3, height=6)
+#layout(matrix(c(1, 2, 3), 3, 1, byrow = TRUE))
+par(mar=c(1, 2.5, 1, 1))
+
+latitude <- flagged_sites$LAT[order(statenum4plot, lat)]
+latitude[latitude==0] <- NA
+
+Res <- flagged_sites$SALSvRes[order(statenum4plot, lat)]
+Res[Res<2] <- -1
+SLR <- flagged_sites$SALSvSLR[order(statenum4plot, lat)]
+SLR[SLR<2] <- -1
+SLR[SLR==2] <- 1
+Loss <- flagged_sites$SALSvLoss[order(statenum4plot, lat)]
+Loss[Loss<2] <- -1
+Loss[Loss==2] <- 0
+ 
+plot(Res, 1:length(Res), pch=3, col=rgb(0, 0, 0, 0), xlim=c(-0.1, 2.3), cex=1.5,
+     bty="n", xlab=" ", ylab=" ", xaxt="n", yaxt="n", cex.axis=0.75)
+segments((SLR+0.1), 1:length(SLR), (SLR-0.1), 1:length(SLR), col=rgb(0, 0, 0, 0.2), cex=1.5, lwd=2)
+segments((Loss+0.1), 1:length(Loss), (Loss-0.1), 1:length(Loss), col=rgb(0, 0, 0, 0.2), cex=1.5, lwd=2)
+segments((Res+0.1), 1:length(Res), (Res-0.1), 1:length(Res), col=rgb(0, 0, 0, 0.2), cex=1.5, lwd=2)
+for(i in 1:(max(statenum4plot)-1)){
+  abline(h=(max(which(statenum4plot==i))), col=rgb(0, 0, 0, 0.8))
+}
+#abline(h=38.023551, col=rgb(0, 0, 0, 0.25))
+#abline(h=38.460926, col=rgb(0, 0, 0, 0.25))
+#abline(h=38.933465, col=rgb(0, 0, 0, 0.25))
+#abline(h=40.544736, col=rgb(0, 0, 0, 0.25))
+#abline(h=41.248385, col=rgb(0, 0, 0, 0.25))
+#abline(h=41.342930, col=rgb(0, 0, 0, 0.25))
+#abline(h=41.534695, col=rgb(0, 0, 0, 0.25))
+#abline(h=42.870168, col=rgb(0, 0, 0, 0.25))
+#abline(h=43.082467, col=rgb(0, 0, 0, 0.25))
+#axis(side=2, at=c(0, 1, 2))
+mtext(side=2, line=1.25, "Marsh patches from south to north", cex=0.75)
+#mtext(side=2, line=2.4, "No. of variables in top 20%", cex=0.75)
+text(1.2, 7100, "Sea level rise", cex=0.75, pos=4, srt=90)
+text(0.2, 7100, "Forest loss", cex=0.75, pos=4, srt=90)
+text(2.2, 7100, "Tidal restriction", cex=0.75, pos=4, srt=90)
+#text(37, 0.75, "VA", cex=0.75, pos=1, col=rgb(0, 0, 0, 0.25))
+#text(39.5, 0.75, "VA", cex=0.75, pos=1, col=rgb(0, 0, 0, 0.25))
+
+
+
+
+
+
+
+
+plot(latitude, flagged_sites$SALSvRes, pch=15, col=rgb(0, 0, 0, 0.1), ylim=c(-0.1, 2.1), cex=1.5,
+     bty="n", xlab=" ", ylab=" ", yaxt="n")
+axis(side=2, at=c(0, 1, 2))
+mtext(side=1, line=2, "Latitude", cex=0.75)
+mtext(side=2, line=2.4, "No. of variables in top 20%", cex=0.75)
+mtext(side=3, line=1, font=2, "Area of tidal restrictions and Saltmarsh Sparrow abundance", cex=0.75)
+
+plot(latitude, flagged_sites$SALSvLoss, pch=15, col=rgb(0, 0, 0, 0.1), ylim=c(-0.1, 2.1), cex=1.5,
+     bty="n", xlab=" ", ylab=" ", yaxt="n")
+axis(side=2, at=c(0, 1, 2))
+mtext(side=1, line=2, "Latitude", cex=0.75)
+mtext(side=2, line=2.4, "No. of variables in top 20%", cex=0.75)
+mtext(side=3, line=1, font=2, "Forest loss and Saltmarsh Sparrow abundance", cex=0.75)
