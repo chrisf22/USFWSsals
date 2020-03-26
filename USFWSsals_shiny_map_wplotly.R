@@ -35,7 +35,7 @@ ui <- fluidPage(
            )),
     column(5,
            plotOutput("plot2", click = "plot2_click", height = "600px"),
-           helpText("Click on a point to see its location in the map window. Data for the mapped location is shown below the window. The threshold slider highights, for the x and y variables, the greatest or lowest X% of the locations. ")
+           helpText("Click on a point to see its location in the map window. Data for the mapped location is shown below the window. The threshold slider highights, for the x and y variables, the top or bottom X% of the locations (top X% for saltmarsh sparrow abundance, forest loss, and tidal restriction; bottom X% for sea-level rise). The highlighted green points show locations that exceed the specified threshold for both the x and y variables.  ")
     ),
     column(6,
            leafletOutput("mymap", height = "600px"),
@@ -45,7 +45,7 @@ ui <- fluidPage(
 
 server <- function(input, output, session) {
   
-  load("SHARP_patches_wforest.RData")
+  #load("SHARP_patches_wforest.RData")
   # to avoid warnings, make all zeros in SHARP_patches_4plot = NA
   SHARP_patches_4plot[SHARP_patches_4plot == 0] <- NA
   # 'SHARP_patches_4plot' must be in workspace
@@ -55,8 +55,8 @@ server <- function(input, output, session) {
   colnames(SHARP_patches_4plot)[6] <- "Saltmarsh_Sparrow_abundance"
     
   output$click_info <- renderPrint({
-    nearPoints(SHARP_patches_4plot, xvar="Saltmarsh_Sparrow_abundance", yvar=varnames[as.numeric(input$ytest)], input$plot2_click, addDist = TRUE)[,c("SHARP_Patch_ID", "Forest_loss", "Saltmarsh_Sparrow_abundance")]
-  })
+    round(nearPoints(SHARP_patches_4plot, xvar="Saltmarsh_Sparrow_abundance", yvar=varnames[as.numeric(input$ytest)], input$plot2_click, addDist = TRUE)[,c("SHARP_Patch_ID", "Forest_loss", "Saltmarsh_Sparrow_abundance", "Prop_restricted", "SLR")], 2)
+    })
   
   latlong <-
     reactive(nearPoints(SHARP_patches_4plot, xvar="Saltmarsh_Sparrow_abundance", yvar=varnames[as.numeric(input$ytest)], input$plot2_click, addDist = FALSE)[,c("long", "lat")])
@@ -79,11 +79,12 @@ server <- function(input, output, session) {
   axislabels <- list(c('0.0001', '0.001', '0.01', '0.1', '1'), c('0', '0.25', '0.5', '0.75', '1'), c("1", "2", "3", "4", "5", "6"))
   ylabs <- c("Forest loss (poportion of patch)", "Tidal restriction (proportion of patch)", "Sea-level rise rate (mm/year)")
   loglogical <- c("xy", "x", "x")
+  plotlims <- list(c(0.0001, 1), c(0.00001, 1), c(1, 6))
  
   # where does this go?
   output$plot2 <- renderPlot({
     plot(SHARP_patches_4plot$Saltmarsh_Sparrow_abundance[as.logical(bystate[,as.numeric(input$state)])], SHARP_patches_4plot[,varnames[as.numeric(input$ytest)]][as.logical(bystate[,as.numeric(input$state)])], log=loglogical[as.numeric(input$ytest)], xaxt="n", yaxt="n", 
-         xlab="Saltmarsh sparrow abundance", ylab=ylabs[as.numeric(input$ytest)], bty="n", pch=16, col=rgb(0, 0, 0, 0.5), cex=1.5, cex.lab=1.25)
+         xlab="Saltmarsh sparrow abundance", ylab=ylabs[as.numeric(input$ytest)], bty="n", pch=16, col=rgb(0, 0, 0, 0.5), cex=1.5, cex.lab=1.25, ylim=plotlims[[as.numeric(input$ytest)]], xlim=c(0.0001, 10000))
     axis(side=1, at=c(0.0001, 0.01, 1, 100, 10000), 
          labels=c('0.0001', '0.01', '1', '100', '10000'), cex.axis=1.25)
     #axis(side=2, at=c(0.0001, 0.001, 0.01, 0.1, 1), 
@@ -96,8 +97,9 @@ server <- function(input, output, session) {
     xlog <- SHARP_patches_4plot[,varnames[as.numeric(input$ytest)]][as.logical(bystate[,as.numeric(input$state)])] <= quantile(SHARP_patches_4plot[,varnames[as.numeric(input$ytest)]][as.logical(bystate[,as.numeric(input$state)])], c(input$slider1), na.rm=TRUE)
     sliderdir <- cbind(slog, slog, xlog)
     yy <- sliderdir[,as.numeric(input$ytest)]
-    points(SHARP_patches_4plot$Saltmarsh_Sparrow_abundance[as.logical(bystate[,as.numeric(input$state)])][yy], SHARP_patches_4plot[,varnames[as.numeric(input$ytest)]][as.logical(bystate[,as.numeric(input$state)])][yy], pch=16, col="blue")
-    points(SHARP_patches_4plot$Saltmarsh_Sparrow_abundance[as.logical(bystate[,as.numeric(input$state)])][xx], SHARP_patches_4plot[,varnames[as.numeric(input$ytest)]][as.logical(bystate[,as.numeric(input$state)])][xx], pch=16, col=rgb(1, 0, 0, 0.5))
+    points(SHARP_patches_4plot$Saltmarsh_Sparrow_abundance[as.logical(bystate[,as.numeric(input$state)])][yy], SHARP_patches_4plot[,varnames[as.numeric(input$ytest)]][as.logical(bystate[,as.numeric(input$state)])][yy], pch=16, col=rgb(.243, .22, .635), cex=1.55)
+    points(SHARP_patches_4plot$Saltmarsh_Sparrow_abundance[as.logical(bystate[,as.numeric(input$state)])][xx], SHARP_patches_4plot[,varnames[as.numeric(input$ytest)]][as.logical(bystate[,as.numeric(input$state)])][xx], pch=16, col=rgb(.149, .486, .565, 1), cex=1.55)
+    points(SHARP_patches_4plot$Saltmarsh_Sparrow_abundance[as.logical(bystate[,as.numeric(input$state)])][as.logical(xx*yy)], SHARP_patches_4plot[,varnames[as.numeric(input$ytest)]][as.logical(bystate[,as.numeric(input$state)])][as.logical(xx*yy)], pch=16, col=rgb(.384, .788, .188, 1), cex=1.55)
   })
   
   output$mymap <- renderLeaflet({
