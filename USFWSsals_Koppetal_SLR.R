@@ -56,25 +56,6 @@ NYC_LSL_rcp26[,81] <- NYC_LSL_allscens[,68]
 NYC_LSL_rcp26[,91] <- NYC_LSL_allscens[,69]
 NYC_LSL_rcp26[,101] <- NYC_LSL_allscens[,70]
 
-# interpolate mean values from figures in Kopp et al. 2014
-#NYC_LSL_8.5 <- rep(NA, 101)
-#NYC_LSL_8.5[1] <- 0
-#NYC_LSL_8.5[31] <- 20
-#NYC_LSL_8.5[51] <- 38
-#NYC_LSL_8.5[101] <- 96
-
-#NYC_LSL_4.5 <- rep(NA, 101)
-#NYC_LSL_4.5[1] <- 0
-#NYC_LSL_4.5[31] <- 20
-#NYC_LSL_4.5[51] <- 36
-#NYC_LSL_4.5[101] <- 75
-
-#NYC_LSL_2.6 <- rep(NA, 101)
-#NYC_LSL_2.6[1] <- 0
-#NYC_LSL_2.6[31] <- 20
-#NYC_LSL_2.6[51] <- 35
-#NYC_LSL_2.6[101] <- 62
-
 x <- 1:101
 
 plot(predict(loess(NYC_LSL_rcp85[1,] ~ x, span=0.5), x))
