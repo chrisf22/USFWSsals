@@ -1,24 +1,22 @@
-high_dates_NL.csv
-For each tide prediction in "high_tides_NL.csv", the days since May 1 of the given year. 
+This repository contains scripts for models and applications that were created for the Atlantic Coast Joint Venture to support Saltmarsh Sparrow management and to generate population projections for the species status assessment. 
 
-high_tides_NL.csv
-Rows are the predicted height (ft) of astronomical tide for every high tide, in sequential order, between between May 1 and August 31 of a given year. Columns are years; first column is 2012.
+List of scripts:
+‘USFWSsals_main.R’ is the primary script for projecting Saltmarsh Sparrow (Ammospiza caudacuta) populations in the face of sea-level rise and management actions. This script is best run using parallel computing with many workers and requires several files to run:
 
-IBM_parameters.csv
-Parameters from the list in Table 2 of the paper that do not have separate .csv files
+•	‘high_dates_NL.csv’. For each tide prediction in "high_tides_NL.csv", the days since May 1 of the given year.
 
-nest_failure_MCMC.csv
-Rows are posterior draws from the parameters (columns) that describe nest success probabilities. The columns are, in order, the intercept, effect of tide height, and the standard deviation of the nest-level random effect. 
+•	‘high_tides_NL.csv’. Rows are the predicted height (ft) of astronomical tide for every high tide, in sequential order, between May 1 and August 31 of a given year. Columns are years; first column is 2012.
 
-renest_prob_MCMC.csv
-Rows are posterior draws from the parameters (columns) that describe quitting probability (from Ruskin et al. 2015). The columns are, in order, the intercept, effect of latitude (which is constant at the latitude of Long Island Sound in the model), and the effect of date. 
+•	‘IBM_parameters.csv’. Parameters from the list in Table 2 of the paper that do not have separate .csv files
 
-SLR_Rahmstorf.csv
-Projections of global sea level from Vermeer and Rhamstorf (2009). We use A1F1 and B1 in the model.
+•	‘nest_failure_MCMC.csv’. Rows are posterior draws from the parameters (columns) that describe nest success probabilities. The columns are, in order, the intercept, effect of tide height, and the standard deviation of the nest-level random effect.
 
-storm_surge_posteriors.csv
-Rows are posterior draws from the parameters (columns) that describe the baseline and temporal trends in non-tidal fluctuations. The columns, are in order, the intercept, the yearly trend, the mean of year-specific parameters for within-season trends, the deviance of the model, the strength of temporal autocorrelation, the standard deviation of the residual variation, the standard deviation of variation in parameters for within-season trends, and the standard deviation of yearly variation.
+•	‘renest_prob_MCMC.csv’. Rows are posterior draws from the parameters (columns) that describe quitting probability (from Ruskin et al. 2015). The columns are, in order, the intercept, effect of latitude (which is constant at the latitude of Long Island Sound in the model), and the effect of date.
 
-surv_avgsite_MCMC.csv
-Rows are posterior draws from the parameters (columns) that describe adult annual survival (from Field et al. 2016). The columns are, in order, the mean survival rate and the standard deviation desribing spatial variation in the parameter. 
+•	‘storm_surge_posteriors.csv’. Rows are posterior draws from the parameters (columns) that describe the baseline and temporal trends in non-tidal fluctuations. The columns, are in order, the intercept, the yearly trend, the mean of year-specific parameters for within-season trends, the deviance of the model, the strength of temporal autocorrelation, the standard deviation of the residual variation, the standard deviation of variation in parameters for within-season trends, and the standard deviation of yearly variation.
 
+•	‘surv_avgsite_MCMC.csv’. Rows are posterior draws from the parameters (columns) that describe adult annual survival (from Field et al. 2016). The columns are, in order, the mean survival rate and the standard deviation describing spatial variation in the parameter.
+
+‘USFWSsals_habitat_tool_app.R’ specifies a Shiny app (the Saltmarsh sparrow management tool: a data-driven aid for identifying suitable marshes) that allows users to plot key variables related to marsh management alongside Saltmarsh Sparrow (Ammospiza caudacuta) abundance. Saltmarsh Sparrow abundance is always shown on the x-axis. Each marsh patch is shown as a clickable dot. Once clicked, the location of a marsh patch will be displayed on a leaflet map and the attributes of the patch are printed below the map. The shapefile “SHARP_patches_100m_USFWSsals.shp” and the workspace “SHARP_patches_wforest.RData” must be available in the main directory. The Shiny app requires ‘leaflet’ (for the interactive map) and ‘rdgal’ (to create an object from the shapefile). 
+
+‘USFWSsals_haunted_app.R’ specifies a Shiny app (Haunted habitats: a tool for identifying future Saltmarsh Sparrow habitat) that allows the user to explore the correlations between Saltmarsh Sparrow (Ammospiza caudacuta) abundance, and indicators of landward marsh migration: recent forest dieback and slope at the forest-to-marsh boundary. The data on Saltmarsh sparrows are from range-wide surveys conducted by the Saltmarsh Habitat and Avian Research Program (SHARP; www.tidalmarshbirds.org). Marsh migration indicators are from an analysis of the Global Forest Change (Hansen et al. 2020) and U.S. Geological Survey National Elevation datasets using Google Earth Engine. Marsh patch boundaries follow Wiest et al. (2016), who used a 50-m buffering approach to group marshes into biologically-relevant units using the U.S. Fish and Wildlife Service’s National Wetlands Inventory. Forest loss is the area within 100 m of tidal marsh that experienced loss between 2000-2020, from Hansen et al. (2020). For more information on how forest loss and extent was extracted from each patch, layer resolution, and slope calculations, see Field 2020 (https://www.biorxiv.org/content/10.1101/2021.09.14.460301v1). The workspace "SALS_forest_workspace.RData" contains objects for sparrow abundance and marsh migration indicators. The file "haunted_habitat_documentation.pdf" must be in the main working directory to be able to download the documentation. The Shiny app requires 'plotly' as the figures use the Plotly JavaScript library. References: Hansen, M. C., Potapov, P. V., Moore, R., Hancher, M., Turubanova, S. A., Tyukavina, A., Thau, D., Stehman, S. V., Goetz, S. J., Loveland, T. R., Kommareddy, A., Egorov, A., Chini, L., Justice, C. O., & Townshend, J. R. G. (2020). Hansen Global Forest Change v1.6 (2000-2018). Google Earth Engine Dataset. http://earthenginepartners.appspot.com/science-2013-global-forest 
