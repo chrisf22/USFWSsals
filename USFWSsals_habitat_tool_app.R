@@ -5,7 +5,7 @@
 ### abundance and view the location of selectable marsh patches. Saltmarsh Sparrow abundance is always shown on the x-axis.
 ### Each marsh patch is shown as a clickable dot. Once clicked, the location of a marsh patch will be displayed on the map.
 ### The shapefile "SHARP_patches_100m_USFWSsals.shp", the workspace "SHARP_patches_wforest.RData", and the document, 
-### "Shiny_metadata.pdf" must be available in the main directory.
+### "SSMT_doc.pdf" must be available in the main directory.
 
 ## app requires 'leaflet' (for the interactive map) and 'rdgal' (to create an object from the shapefile)
 
