@@ -1,4 +1,4 @@
-This repository contains scripts for models and applications that were created for the Atlantic Coast Joint Venture to support Saltmarsh Sparrow management and to generate population projections for the species status assessment. 
+This repository contains scripts for models and applications that were created for the Atlantic Coast Joint Venture to support Saltmarsh Sparrow management and generate population projections for the species status assessment. 
 
 List of scripts:
 ‘USFWSsals_main.R’ is the primary script for projecting Saltmarsh Sparrow (Ammospiza caudacuta) populations in the face of sea-level rise and management actions. This script is best run using parallel computing with many workers and requires several files to run:
