@@ -1,10 +1,10 @@
 ### this script runs individual-based (female-only) simulations for global or state-level populations to estimate extinction risk for saltmarsh sparrows by projecting tide height for Y years (80 years max)
 ### the simulation uses parallel computing to run Q iterations for quantifying uncertainty from parameter estimation
-### it is also possible to partition environmental and demographic stochasticity by specifying a number other than 1 for E 
-### loop E runs within each iteration for Q, giving the enviro/demo uncertainty for a single vector of values of the simulation's parameters 
+### it is also possible to partition environmental and demographic stochastic by specifying a number other than 1 for E 
+### loop E runs within each iteration for Q, giving the environmental/demographic uncertainty for a single vector of values of the simulation's parameters 
 
 # water level units are in ft above MSL to be consistent with NOAA tidal constituents
-# all years are nonleap years, but this does not matter for population simulations because the season always starts on May 1 (leap years do matter for projecting tides heights using tidal constituents)
+# all years are non-leap years, but this does not matter for population simulations because the season always starts on May 1 (leap years do matter for projecting tides heights using tidal constituents)
 
 ### CHECK BEFORE RUNNING ###
 # check starting population sizes
@@ -24,13 +24,13 @@ start_time <- proc.time()
 # specify the number of iterations for each loop
 # E is demographic and environmental stochasticity (not necessary unless specifically partitioning uncertainty)
 # currently specified to run once without management (E = 1) and once to simulate either tide gate manipulation or thin layer deposition (E = 2)
-E <- 12
+E <- 10
 # Y is the number of years
 #Y <-  80
 Y <-  50
 # Q is the number of iterations for estimating uncertainty from parameter estimation
-#Q <-1000
-Q <- 100
+Q <-1000
+#Q <- 100
 # number of high tides in each season with tide gate manipulation
 num_saves <- c(0, 5, 10, 100, 100, 0, 0, 0, 0, 0, 0, 0)
 # the year of forest management and ecosystem transition time
@@ -114,7 +114,7 @@ SLR_Kopp_scen26 <- read.csv(file = "SLR_Kopp_scen26.csv", header=FALSE, sep=",",
 nest_succ <- read.csv(file = "nest_failure_MCMC.csv", header=TRUE, sep=",", stringsAsFactors=FALSE, quote="")
 # load values for adult survival
 surv_CT <- read.csv(file = "surv_avgsite_MCMC.csv", header=TRUE, sep=",", stringsAsFactors=FALSE, quote="")
-# load renesting probability; varies by date and latitude, but no individual variation beyond binomial sampling variance
+# load re-nesting probability; varies by date and latitude, but no individual variation beyond binomial sampling variance
 renest_prob_MCMC <- read.csv(file = "renest_prob_MCMC.csv", header=TRUE, sep=",", stringsAsFactors=FALSE, quote="")
 
 # function for Latin Hypercube Sampling for parameters drawn from posterior samples
@@ -155,7 +155,7 @@ cl <- makeCluster(detectCores() - 2)
 registerDoParallel(cl, cores=detectCores() - 2)
 
 PVA <- foreach(q = 1:Q) %dopar% {
-  # this for loop is for testing without using foreach
+  # this for loop is for testing without using 'foreach'
   #start_time <- proc.time()
   #for(q in 1:100){
   # create an empty length(site)-by-Y-by-E array to store results; length(site) = 1 for a single-population model
@@ -163,7 +163,7 @@ PVA <- foreach(q = 1:Q) %dopar% {
   #popsize_matrix <- array(0, dim=c(1, Y + 1, E))
   
   # pull parameter values from posteriors
-  # draw values for renesting probability; varies by date and latitude, but no individual variation beyond binomial sampling variance
+  # draw values for re-nesting probability; varies by date and latitude, but no individual variation beyond binomial sampling variance
   # randomly select a row number, which will be used to draw a vector of parameter values from same step of the MCMC chain
   # using simple random sampling
   #renest_prob_row <- sample(1000, 1)
@@ -249,7 +249,7 @@ PVA <- foreach(q = 1:Q) %dopar% {
   # residual variance
   sd <- surge_posteriors[ ssindex,6]
   
-  # get log(accretion) mean and standard devation from LIS studies; backtransform and convert from m to ft to be consistent with NOAA tidal constintuent data
+  # get log(accretion) mean and standard deviation from LIS studies; back-transform and convert from m to ft to be consistent with NOAA tidal constintuent data
   #accretion <- exp(rnorm(1, -5.7208, 0.1923))*3.28084
   accretion <- lhs_dist(4.3186, 0.6064)*0.00328084 
   
@@ -291,14 +291,14 @@ PVA <- foreach(q = 1:Q) %dopar% {
     survival_sitevector <- survival_sitevector + survival_annual_var
     # add spatial variation, "survival_siteSD", to mean survival for each individual
     survival_logit <- survival_sitevector + rnorm(length(individs_bysite), 0, survival_siteSD)
-    # get backtransformed survival for each individual
+    # get back-transformed survival for each individual
     survival <- exp(survival_logit)/(1+exp(survival_logit))
     # get first and last egg dates; from Ruskin et al. 2015
     start_date <- rep(141, length(individs_bysite))
     end_date <- rep(203, length(individs_bysite))
     # calculate total population size over all sites
     popsize <- length(individs_bysite)
-
+    
     # parameters and tide data are using a baseline of 2013, so they are indexed as (y+7) so that y = 1 is 2021; starting population size is for 2020 
     # year loop; tide projections can support a maximum of 80 years (Y)
     for(y in 1:Y){
@@ -397,7 +397,7 @@ PVA <- foreach(q = 1:Q) %dopar% {
       
       # clutch size is used to estimate egg laying days; this parameter only has sampling variation by individual 
       # each female has a constant clutch size within-season, but it can change between years
-      # backtransform multinomial regression parameters
+      # back-transform multinomial regression parameters
       clutch_size_p2 <- 1/(1+ (clutch_size_3 + clutch_size_4 + clutch_size_5))
       clutch_size_p3 <- clutch_size_3/(1+ (clutch_size_3 + clutch_size_4 + clutch_size_5))
       clutch_size_p4 <- clutch_size_4/(1+ (clutch_size_3 + clutch_size_4 + clutch_size_5))
@@ -408,24 +408,24 @@ PVA <- foreach(q = 1:Q) %dopar% {
       # calculate nestling period
       chicks <- round(rnorm(length(new_lat), B_vital[7, 1] + B_vital[7, 2]*new_lat, B_vital[7, 4]))
       
-      # days until renesting after sucess or failure; values are rounded and constrained to be <= 34, which is the maximum observed wait period after failure
+      # days until re-nesting after sucess or failure; values are rounded and constrained to be <= 34, which is the maximum observed wait period after failure
       renest_days_success <- round(rnorm(length(new_lat), B_vital[1, 1] + B_vital[1, 2]*new_lat, B_vital[1, 4]))
-      # if any renest days are greater than 34, keep redrawing
+      # if any re-nest days are greater than 34, keep redrawing
       while(length(which(renest_days_success>34))>0){
         renest_days_success[renest_days_success>34] <- round(rnorm(length(which(renest_days_success>35)), B_vital[1, 1] + B_vital[1, 2]*new_lat, B_vital[1, 4]))
       }
-      # project renesting days after failure
+      # project re-nesting days after failure
       renest_days_fail <- rpois(length(new_lat), max(B_vital[2, 1] + B_vital[2, 2]*new_lat, 0))
       
       # turn latitiude into a matrix that has 1 row for each individual and its latitude value carried over a vector of length(julian)
       new_lat_matrix <- rep(new_lat, length(julian))
       new_lat_matrix <- matrix(new_lat_matrix, ncol=length(julian), byrow=FALSE)
       
-      # probability of renesting has both systematic and stochastic variation by date, as well as individual-level variation added after the regression equation
-      # renesting probability after a previous success
+      # probability of re-nesting has both systematic and stochastic variation by date, as well as individual-level variation added after the regression equation
+      # re-nesting probability after a previous success
       renest_success <- (renest_prob_int + renest_prob_lat*new_lat_matrix + renest_prob_date*julian_matrix) + rnorm(popsize, 0, renest_prob_sd)
       renest_success <- 1 - exp(renest_success)/(1+exp(renest_success))
-      # renesting probability after a previous failure
+      # re-nesting probability after a previous failure
       renest_fail <- (renest_prob_int + renest_prob_lat*new_lat_matrix + renest_prob_date*julian_matrix) + rnorm(popsize, 0, renest_prob_sd)
       renest_fail <- 1 - exp(renest_fail)/(1+exp(renest_fail))
       
@@ -463,7 +463,7 @@ PVA <- foreach(q = 1:Q) %dopar% {
       #}
       nest_succ_logit <- sapply(xx, FUN=thin_layer_adj, simplify="array")
       nest_succ_logit <- sapply(xx, FUN=migration_adj, simplify="array")
-      # backtransform nest success probabilities 
+      # back-transform nest success probabilities 
       succ_prob <- exp(nest_succ_logit)/(1+exp(nest_succ_logit))
       # adjust nest success probabilities so that survival probability = 1 for tides with saves
       succ_prob[save_index_byind==1] <- 1
@@ -502,7 +502,7 @@ PVA <- foreach(q = 1:Q) %dopar% {
       # for each individual, z
       for(z in 1:popsize){
         # "end_vector" indexes (1 or 0) the last day an individual can start nest building, which can vary by individual
-        # all nests end on max(julian)
+        # all nests end on max(julian_matrix)
         end_vector <- rep(1, max(julian_matrix))
         end_vector[end_date[z] + 1:length(end_vector)] <- 0
         first_egg[z] <- which(start_date[z]==julian_matrix[z,])
@@ -512,7 +512,7 @@ PVA <- foreach(q = 1:Q) %dopar% {
         t <- 0
         # start a scalar that keeps track of the number of days in a row without nest failure
         f <- 0
-        # start a scalar that kicks out of the loop if a nest fails and the renesting draw is zero OR a nest fledges and the renesting draw is zero
+        # start a scalar that kicks out of the loop if a nest fails and the re-nesting draw is zero OR a nest fledges and the re-nesting draw is zero
         terminate <- 0
         # start a scalar that tracks how many successful nests there have been
         succ_nests <- 0
@@ -533,25 +533,30 @@ PVA <- foreach(q = 1:Q) %dopar% {
                 if(clutch > 0){
                   f <- f + 1
                 }
-                # if the nest failed and the renest draw came up 1 (try again), reset the t and f scalars
-                if(clutch == 0&(rbinom(1, 1, renest_fail[z,i])*(end_vector[i] + renest_days_fail[z]))==1){
-                  t <- 0
-                  f <- 0
-                }
-                # if the nest failed and the renest draw came up 0 (give up for the season), terminate scalar is 1
-                if(clutch == 0&(rbinom(1, 1, renest_fail[z,i])*(end_vector[i] + renest_days_fail[z]))==0){
-                  terminate <- 1
+                # enter this loop if the nest failed
+                if(clutch == 0){
+                  # will the individual re-nest after failure? (1 = yes; 0 = no)
+                  renest_fail_realized_s <- rbinom(1, 1, renest_fail[z,i])
+                  # if the re-nest draw came up 1 (try again) and there is time left in the season (end_vector after accounting for re-nest time = 1), reset the t and f scalars
+                  if((renest_fail_realized_s*end_vector[min(length(julian_matrix[1,]), i + renest_days_fail[z])])==1){
+                    t <- 0
+                    f <- 0
+                  }
+                  # if the re-nest draw came up 0 (give up for the season) or there is no time left in the season (end_vector after accounting for re-nest time = 0), set terminate scalar to 1
+                  if((renest_fail_realized_s*end_vector[min(length(julian_matrix[1,]), i + renest_days_fail[z])])==0){
+                    terminate <- 1
+                  }
                 }
                 # if the nest has succeeded a certain number of days (specified by window)
-                # terminate depends on a draw from the successful renesting rates, one is added to succ_nests, and t is reset
+                # terminate depends on a draw from the successful re-nesting rates, one is added to succ_nests, and t is reset
                 # determining the number of fledged young takes place at the end of day i, before the next iteration, which will 					
-                # be the first day of the wait period if an individual renests
+                # be the first day of the wait period if an individual re-nests
                 if(f==(window[z]-1)){
                   fledges <- fledges + clutch
                   succ_nests <- succ_nests + 1
-                  t<-0
-                  f<-0
-                  terminate <- rbinom(1, 1, renest_success[z,i])*(end_vector[i] + renest_days_success[z])
+                  t <- 0
+                  f <- 0
+                  terminate <- rbinom(1, 1, (1 - renest_success[z,i]))*as.numeric(!end_vector[min(length(julian_matrix[1,]), i + renest_days_success[z])])
                 }
               }
               if(t < (nest_building[z] + renest_days_success[z])){
@@ -569,25 +574,30 @@ PVA <- foreach(q = 1:Q) %dopar% {
                 if(clutch > 0){
                   f <- f + 1
                 }
-                # if the nest failed and the renest draw came up 1 (try again), reset the t and f scalars
-                if(clutch == 0&(rbinom(1, 1, renest_fail[z,i])*(end_vector[i] + renest_days_fail[z]))==1){
-                  t<-0
-                  f<-0
-                }
-                # if the nest failed and the renest draw came up 0 (give up for the season), terminate scalar is one
-                if(clutch == 0&(rbinom(1, 1, renest_fail[z,i])*(end_vector[i] + renest_days_fail[z]))==0){
-                  terminate <- 1
+                # enter this loop if the nest failed
+                if(clutch == 0){
+                  # will the individual re-nest after failure? (1 = yes; 0 = no)
+                  renest_fail_realized_ns <- rbinom(1, 1, renest_fail[z,i])
+                  # if the re-nest draw came up 1 (try again) and there is time left in the season (end_vector after accounting for re-nest time = 1), reset the t and f scalars
+                  if((renest_fail_realized_ns*end_vector[min(length(julian_matrix[1,]), i + renest_days_fail[z])])==1){
+                    t <- 0
+                    f <- 0
+                  }
+                  # if the re-nest draw came up 0 (give up for the season) or there is no time left in the season (end_vector after accounting for re-nest time = 0), set terminate scalar to 1
+                  if((renest_fail_realized_ns*end_vector[min(length(julian_matrix[1,]), i + renest_days_fail[z])])==0){
+                    terminate <- 1
+                  }
                 }
                 # if the nest has succeeded a certain number of days (specified by window)
-                # terminate depends on a draw from the successful renesting rates, one is added to succ_nests, and t is reset
+                # terminate depends on a draw from the successful re-nesting rates, one is added to succ_nests, and t is reset
                 # determining the number of fledged young takes place at the end of day i, before the next iteration, which will 					
-                # be the first day of the wait period if an individual renests
+                # be the first day of the wait period if an individual re-nests
                 if(f==(window[z]-1)){
                   fledges <- fledges + clutch
                   succ_nests <- succ_nests + 1
-                  t<-0
-                  f<-0
-                  terminate <- rbinom(1, 1, renest_success[z,i])*(end_vector[i] + renest_days_success[z])
+                  t <- 0
+                  f <- 0
+                  terminate <- rbinom(1, 1, (1 - renest_success[z,i]))*as.numeric(!end_vector[min(length(julian_matrix[1,]), i + renest_days_success[z])])
                 }
               }
               if(t < (nest_building[z] + renest_days_fail[z])){
@@ -635,7 +645,7 @@ PVA <- foreach(q = 1:Q) %dopar% {
       # it is possible to add in annual variation in survival for the next year
       # survival_annual_var <- rnorm(1, 0, .311)
       survival_annual_var <- rnorm(1, 0, 0)
-      # get backtransformed survival for each individual for the next year
+      # get back-transformed survival for each individual for the next year
       survival_logit <- survival_sitevector + rnorm(length(new_lat), 0, survival_siteSD)
       survival <- exp(survival_logit)/(1+exp(survival_logit))
       # get new first egg date for each indiviudal
